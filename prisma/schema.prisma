@@ -1,0 +1,278 @@
+generator client {
+  provider   = "prisma-client"
+  output     = "../lib/generated/prisma"
+  engineType = "client"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum WorkspaceRole {
+  OWNER
+  ADMIN
+  ENGINEER
+  REVIEWER
+  VIEWER
+}
+
+enum ProjectStatus {
+  ACTIVE
+  ARCHIVED
+  ON_HOLD
+}
+
+enum ChatMessageRole {
+  USER
+  ASSISTANT
+  SYSTEM
+  TOOL
+}
+
+enum ChatSessionMode {
+  FREE_CHAT
+  PROJECT_CHAT
+}
+
+enum CalculationReviewStatus {
+  DRAFT
+  NEEDS_REVIEW
+  REVIEWED
+  REJECTED
+}
+
+enum UploadedFileStatus {
+  UPLOADED
+  PROCESSING
+  INDEXED
+  FAILED
+}
+
+model User {
+  id           String        @id @default(cuid())
+  email        String        @unique
+  name         String?
+  role         WorkspaceRole @default(ENGINEER)
+  externalId   String?       @map("external_id")
+  createdAt    DateTime      @default(now()) @map("created_at")
+  updatedAt    DateTime      @updatedAt @map("updated_at")
+
+  ownedOrganizations Organization[] @relation("OrganizationOwner")
+  memberships        ProjectMember[]
+  chatSessions       ChatSession[]
+  chatMessages       ChatMessage[]
+  calculations       Calculation[]
+  uploadedFiles      UploadedFile[]
+  auditLogs          AuditLog[]
+  settings           UserSetting[]
+
+  @@map("users")
+}
+
+model Organization {
+  id        String    @id @default(cuid())
+  name      String
+  ownerId   String?   @map("owner_id")
+  owner     User?     @relation("OrganizationOwner", fields: [ownerId], references: [id], onDelete: SetNull)
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+
+  projects Project[]
+
+  @@index([ownerId])
+  @@map("organizations")
+}
+
+model Project {
+  id             String        @id @default(cuid())
+  organizationId String        @map("organization_id")
+  organization   Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  name           String
+  description    String?
+  discipline     String?
+  jurisdiction   String?
+  status         ProjectStatus @default(ACTIVE)
+  metadataJson   Json          @default("{}") @map("metadata_json")
+  createdAt      DateTime      @default(now()) @map("created_at")
+  updatedAt      DateTime      @updatedAt @map("updated_at")
+
+  members       ProjectMember[]
+  chatSessions  ChatSession[]
+  calculations  Calculation[]
+  uploadedFiles UploadedFile[]
+  standardRefs  EngineeringStandardReference[]
+  auditLogs     AuditLog[]
+
+  @@index([organizationId])
+  @@index([status])
+  @@map("projects")
+}
+
+model ProjectMember {
+  id        String        @id @default(cuid())
+  projectId String        @map("project_id")
+  userId    String        @map("user_id")
+  role      WorkspaceRole @default(VIEWER)
+  createdAt DateTime      @default(now()) @map("created_at")
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, userId])
+  @@index([userId])
+  @@index([projectId, role])
+  @@map("project_members")
+}
+
+model ChatSession {
+  id        String          @id @default(cuid())
+  projectId String?         @map("project_id")
+  userId    String          @map("user_id")
+  title     String
+  mode      ChatSessionMode @default(FREE_CHAT)
+  metadataJson Json         @default("{}") @map("metadata_json")
+  createdAt DateTime        @default(now()) @map("created_at")
+  updatedAt DateTime        @updatedAt @map("updated_at")
+
+  project  Project?      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user     User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  messages ChatMessage[]
+
+  @@index([projectId, updatedAt])
+  @@index([userId, mode, updatedAt])
+  @@map("chat_sessions")
+}
+
+model ChatMessage {
+  id            String          @id @default(cuid())
+  chatSessionId String          @map("chat_session_id")
+  projectId     String?         @map("project_id")
+  userId        String?         @map("user_id")
+  role          ChatMessageRole
+  content       String
+  metadataJson  Json            @default("{}") @map("metadata_json")
+  createdAt     DateTime        @default(now()) @map("created_at")
+
+  chatSession ChatSession @relation(fields: [chatSessionId], references: [id], onDelete: Cascade)
+  user        User?       @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([chatSessionId, createdAt])
+  @@index([projectId, createdAt])
+  @@index([userId, createdAt])
+  @@map("chat_messages")
+}
+
+model Calculation {
+  id                  String                  @id @default(cuid())
+  projectId           String                  @map("project_id")
+  userId              String                  @map("user_id")
+  linkedChatMessageId String?                 @map("linked_chat_message_id")
+  calculationType     String                  @map("calculation_type")
+  objective           String?
+  inputJson           Json                    @map("input_json")
+  resultJson          Json                    @map("result_json")
+  unitSystem          String?                 @map("unit_system")
+  assumptionsJson     Json                    @default("[]") @map("assumptions_json")
+  warningsJson        Json                    @default("[]") @map("warnings_json")
+  limitationsJson     Json                    @default("[]") @map("limitations_json")
+  reviewStatus        CalculationReviewStatus @default(DRAFT) @map("review_status")
+  requiresProfessionalReview Boolean          @default(true) @map("requires_professional_review")
+  createdAt           DateTime                @default(now()) @map("created_at")
+  updatedAt           DateTime                @updatedAt @map("updated_at")
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([projectId, createdAt])
+  @@index([userId, createdAt])
+  @@index([calculationType])
+  @@map("calculations")
+}
+
+model UploadedFile {
+  id          String             @id @default(cuid())
+  projectId   String             @map("project_id")
+  userId      String             @map("user_id")
+  filename    String
+  fileType    String             @map("file_type")
+  storageUrl  String             @map("storage_url")
+  status      UploadedFileStatus @default(UPLOADED)
+  metadataJson Json              @default("{}") @map("metadata_json")
+  createdAt   DateTime           @default(now()) @map("created_at")
+  updatedAt   DateTime           @updatedAt @map("updated_at")
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  chunks  DocumentChunk[]
+
+  @@index([projectId, createdAt])
+  @@index([userId, createdAt])
+  @@index([status])
+  @@map("uploaded_files")
+}
+
+model DocumentChunk {
+  id             String   @id @default(cuid())
+  uploadedFileId String   @map("uploaded_file_id")
+  chunkText      String   @map("chunk_text")
+  pageNumber     Int?     @map("page_number")
+  embeddingVector Unsupported("vector")? @map("embedding_vector")
+  metadataJson   Json     @default("{}") @map("metadata_json")
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  uploadedFile UploadedFile @relation(fields: [uploadedFileId], references: [id], onDelete: Cascade)
+
+  @@index([uploadedFileId])
+  @@map("document_chunks")
+}
+
+model AuditLog {
+  id           String   @id @default(cuid())
+  projectId    String?  @map("project_id")
+  userId       String?  @map("user_id")
+  action       String
+  entityType   String   @map("entity_type")
+  entityId     String?  @map("entity_id")
+  metadataJson Json     @default("{}") @map("metadata_json")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  project Project? @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  user    User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([projectId, createdAt])
+  @@index([userId, createdAt])
+  @@index([action])
+  @@index([entityType, entityId])
+  @@map("audit_logs")
+}
+
+model EngineeringStandardReference {
+  id          String   @id @default(cuid())
+  projectId   String?  @map("project_id")
+  standard    String
+  edition     String?
+  jurisdiction String?
+  notes       String?
+  metadataJson Json    @default("{}") @map("metadata_json")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  project Project? @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId])
+  @@index([standard])
+  @@map("engineering_standard_references")
+}
+
+model UserSetting {
+  id        String   @id @default(cuid())
+  userId    String   @map("user_id")
+  key       String
+  valueJson Json     @map("value_json")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, key])
+  @@map("user_settings")
+}

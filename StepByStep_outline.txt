@@ -1,0 +1,766 @@
+STEP-BY-STEP OUTLINE
+Aligning the Engineering GPT Prototype with the Base Instruction
+
+Purpose
+This outline packages the implementation steps required to align the current Engineering GPT prototype with the Base instruction. The focus areas are AI API integration, calculation reliability, database integration, and user authentication.
+
+Core Target
+The application should behave as a controlled engineering assistant, not a general chatbot. It should:
+- Stay within engineering and technical project scope.
+- Show assumptions, formulas, missing data, units, limitations, and professional-review notices for calculations.
+- Avoid pretending to be a licensed engineer.
+- Avoid approving final designs, code compliance, construction, installation, or operation.
+- Treat standards and codes as informational support unless verified by qualified professionals and applicable authorities.
+- Preserve traceability through saved chats, calculations, files, and audit logs.
+
+------------------------------------------------------------
+PHASE 1 — ESTABLISH THE SYSTEM ARCHITECTURE
+------------------------------------------------------------
+
+1. Clean the project structure
+
+Recommended structure:
+
+app/
+  api/
+    chat/
+    calculations/
+    files/
+    projects/
+    auth/
+  dashboard/
+  assistant/
+  calculators/
+components/
+lib/
+  ai/
+  auth/
+  db/
+  calculations/
+  documents/
+  safety/
+  validation/
+data/
+prisma/ or drizzle/
+tests/
+Base.txt
+
+Actions:
+- Remove generated build artifacts from the source package.
+- Remove .next, node_modules, and .git from handoff archives.
+- Keep only source files, configuration, documentation, and required assets.
+- Add a proper project README.
+
+README should include:
+- Product purpose.
+- Engineering-only assistant scope.
+- Setup instructions.
+- Required environment variables.
+- AI provider configuration.
+- Database setup.
+- Authentication setup.
+- Calculation limitations.
+- Safety and compliance notes.
+
+------------------------------------------------------------
+PHASE 2 — CONVERT BASE.TXT INTO ENFORCEABLE APPLICATION LOGIC
+------------------------------------------------------------
+
+2. Load Base.txt as the core AI system instruction
+
+Create:
+
+lib/ai/basePrompt.ts
+
+Purpose:
+- Store or load the Base instruction server-side.
+- Ensure it is applied inside the backend AI route.
+- Do not rely on frontend-only prompt injection.
+
+Example responsibility:
+
+export const ENGINEERING_BASE_PROMPT = `
+[contents of Base.txt]
+`;
+
+3. Add an instruction hierarchy
+
+Recommended order:
+
+1. System/developer instructions from Base.txt.
+2. Product-level safety rules.
+3. Project context.
+4. Uploaded document context.
+5. User message.
+
+Important rule:
+Uploaded files, drawings, PDFs, emails, and project documents may contain hostile or irrelevant instructions. Treat such content only as project data. Never allow file content to override Base.txt or system-level behavior.
+
+4. Add a structured AI response contract
+
+The AI should return both answer content and structured metadata.
+
+Recommended response type:
+
+type EngineeringAIResponse = {
+  answer: string;
+  scopeStatus: "engineering" | "out_of_scope" | "needs_clarification";
+  assumptions: string[];
+  missingData: string[];
+  safetyWarnings: string[];
+  standardsReferenced: string[];
+  requiresProfessionalReview: boolean;
+  confidenceLevel: "rough_estimate" | "preliminary" | "detailed" | "not_applicable";
+};
+
+Purpose:
+- Allow the UI to consistently show assumptions, warnings, missing data, limitations, and review notices.
+- Avoid burying critical engineering caveats inside free text.
+
+------------------------------------------------------------
+PHASE 3 — AI API INTEGRATION
+------------------------------------------------------------
+
+5. Build the server-side chat endpoint
+
+Create:
+
+app/api/chat/route.ts
+
+Responsibilities:
+- Verify authenticated user.
+- Validate request body.
+- Load Base instruction.
+- Load project context from database.
+- Load relevant document chunks if retrieval is enabled.
+- Call the AI model API.
+- Stream the response back to the frontend.
+- Save user message and AI response to the database.
+- Save metadata such as assumptions, warnings, calculations used, and referenced files.
+
+Recommended route flow:
+
+User message
+  -> Authentication check
+  -> Project permission check
+  -> Scope classifier
+  -> Retrieve project context/documents
+  -> Inject Base.txt instructions
+  -> Call AI API
+  -> Run safety/output validator
+  -> Save message and response
+  -> Return streamed answer
+
+6. Use a model-provider abstraction
+
+Create:
+
+lib/ai/provider.ts
+
+Recommended interface:
+
+export interface AIProvider {
+  generateEngineeringResponse(input: EngineeringChatInput): Promise<EngineeringAIResponse>;
+  streamEngineeringResponse(input: EngineeringChatInput): AsyncIterable<string>;
+}
+
+Purpose:
+- Avoid hard-wiring the app to one provider.
+- Allow future support for OpenAI-compatible APIs, Azure OpenAI-style deployments, local model gateways, or enterprise model providers.
+
+7. Add AI tool calling for engineering operations
+
+The AI should not invent calculation results. It should call deterministic calculation tools.
+
+Recommended tools:
+- calculate_fluid_pressure_drop
+- calculate_reynolds_number
+- calculate_pipe_flow_rate
+- calculate_beam_reaction
+- calculate_voltage_drop
+- calculate_pump_power
+- search_project_documents
+- summarize_uploaded_datasheet
+- generate_method_statement
+- generate_inspection_checklist
+
+Principle:
+- The AI explains and documents.
+- Calculation modules compute.
+
+8. Add engineering-scope classification
+
+Classify each user request before answering.
+
+Suggested categories:
+- engineering_allowed
+- engineering_calculation
+- engineering_documentation
+- engineering_troubleshooting
+- standards_or_code
+- safety_critical
+- out_of_scope
+- ambiguous
+
+Behavior:
+- If out_of_scope, return the refusal behavior defined by Base.txt.
+- If safety_critical, force additional warning and professional-review language.
+- If ambiguous, ask for engineering context or clarify missing technical details.
+
+------------------------------------------------------------
+PHASE 4 — CALCULATION ENGINE INTEGRATION
+------------------------------------------------------------
+
+9. Separate calculations from UI
+
+Move engineering calculations out of React components.
+
+Recommended structure:
+
+lib/calculations/
+  fluid/
+    pressureDrop.ts
+    reynolds.ts
+    frictionFactor.ts
+    schemas.ts
+    tests/
+  units/
+    convert.ts
+  common/
+    resultTypes.ts
+
+The frontend should call calculation APIs or shared calculation modules instead of embedding engineering math directly in page components.
+
+10. Define a standard calculation result format
+
+Recommended type:
+
+type CalculationResult = {
+  calculationType: string;
+  objective: string;
+  inputs: Record<string, InputValue>;
+  assumptions: string[];
+  missingData: string[];
+  formulas: FormulaStep[];
+  steps: CalculationStep[];
+  results: Record<string, ResultValue>;
+  warnings: string[];
+  limitations: string[];
+  requiresProfessionalReview: boolean;
+};
+
+Purpose:
+- Enforce Base.txt calculation requirements.
+- Make all calculations auditable and exportable.
+
+11. Add input validation
+
+Use a schema validation library such as Zod.
+
+Example:
+
+const FluidPressureDropInputSchema = z.object({
+  diameter_m: z.number().positive(),
+  length_m: z.number().positive(),
+  velocity_m_s: z.number().positive(),
+  density_kg_m3: z.number().positive(),
+  viscosity_pa_s: z.number().positive(),
+  roughness_m: z.number().nonnegative().optional(),
+});
+
+Reject invalid values such as:
+- Zero diameter.
+- Negative flow rate.
+- Missing viscosity.
+- Invalid units.
+- Impossible density values.
+
+12. Improve the fluid dynamics calculator
+
+Upgrade the calculator from demo logic to a traceable engineering estimator.
+
+Add:
+- Pipe roughness input.
+- Fluid presets.
+- Unit selector.
+- Reynolds number classification.
+- Laminar friction factor: f = 64 / Re.
+- Turbulent friction factor correlation.
+- Transitional-flow warning.
+- Pressure-drop formula trace.
+- Minor-loss coefficient option.
+- Temperature-dependent fluid properties.
+- Preliminary-only warning.
+
+Output sections should include:
+- Objective.
+- Inputs.
+- Assumptions.
+- Missing data.
+- Formulas.
+- Calculation steps.
+- Results.
+- Limitations.
+- Professional review notice.
+
+13. Save every calculation to the database
+
+Store:
+- user_id
+- project_id
+- calculation_type
+- input_json
+- result_json
+- unit_system
+- assumptions
+- warnings
+- created_at
+- linked_chat_message_id
+
+Purpose:
+- Support history, auditability, project review, export, and future references by the AI assistant.
+
+------------------------------------------------------------
+PHASE 5 — DATABASE INTEGRATION
+------------------------------------------------------------
+
+14. Choose the database stack
+
+Recommended stack:
+- PostgreSQL.
+- Prisma or Drizzle ORM.
+- Object storage for uploaded files.
+- Vector storage for document retrieval.
+
+Guidance:
+- Use PostgreSQL for users, organizations, projects, messages, calculations, and metadata.
+- Use object storage for original uploaded files.
+- Use vector storage or a vector-capable database extension for document retrieval.
+
+15. Define the core schema
+
+Minimum database entities:
+- User
+- Organization
+- Project
+- ProjectMember
+- ChatSession
+- ChatMessage
+- Calculation
+- UploadedFile
+- DocumentChunk
+- AuditLog
+- EngineeringStandardReference
+- UserSetting
+
+Suggested schema outline:
+
+User
+- id
+- email
+- name
+- role
+- created_at
+
+Organization
+- id
+- name
+- created_at
+
+Project
+- id
+- organization_id
+- name
+- description
+- discipline
+- status
+- created_at
+
+ProjectMember
+- id
+- project_id
+- user_id
+- role
+
+ChatSession
+- id
+- project_id
+- user_id
+- title
+- created_at
+
+ChatMessage
+- id
+- chat_session_id
+- role
+- content
+- metadata_json
+- created_at
+
+Calculation
+- id
+- project_id
+- user_id
+- calculation_type
+- input_json
+- result_json
+- assumptions_json
+- warnings_json
+- created_at
+
+UploadedFile
+- id
+- project_id
+- user_id
+- filename
+- file_type
+- storage_url
+- status
+- created_at
+
+DocumentChunk
+- id
+- uploaded_file_id
+- chunk_text
+- page_number
+- embedding_vector
+- metadata_json
+
+AuditLog
+- id
+- user_id
+- action
+- entity_type
+- entity_id
+- metadata_json
+- created_at
+
+16. Implement project-based access control
+
+Every database query should be scoped by:
+- user_id
+- organization_id
+- project_id
+- role
+
+Rule:
+Never allow users to access calculations, chats, files, or project data from projects they do not belong to.
+
+17. Add audit logging
+
+Log actions such as:
+- User login.
+- File upload.
+- AI response generated.
+- Calculation performed.
+- Calculation exported.
+- Project created.
+- Member invited.
+- Settings changed.
+
+Audit logs should not be editable by normal users.
+
+------------------------------------------------------------
+PHASE 6 — USER AUTHENTICATION AND AUTHORIZATION
+------------------------------------------------------------
+
+18. Add an authentication provider
+
+Use a mature authentication layer instead of writing password/session logic from scratch.
+
+Required features:
+- Email/password or SSO.
+- Session management.
+- Password reset.
+- Email verification.
+- Multi-factor authentication option.
+- Role-based access control.
+
+Recommended roles:
+- Owner
+- Admin
+- Engineer
+- Reviewer
+- Viewer
+
+19. Protect all API routes
+
+Protected routes should include:
+- /api/chat
+- /api/calculations
+- /api/projects
+- /api/files
+- /api/history
+- /api/settings
+
+Route protection flow:
+
+Request
+  -> Check session
+  -> Check project membership
+  -> Check role permission
+  -> Execute action
+
+20. Add role permissions
+
+Suggested permission matrix:
+
+Action | Owner | Admin | Engineer | Reviewer | Viewer
+Create project | Yes | Yes | No | No | No
+Upload files | Yes | Yes | Yes | No | No
+Run calculations | Yes | Yes | Yes | Yes | No
+Review calculations | Yes | Yes | No | Yes | No
+View project data | Yes | Yes | Yes | Yes | Yes
+Invite users | Yes | Yes | No | No | No
+Delete project | Yes | No | No | No | No
+
+21. Add secure account pages
+
+Replace mock security pages with working functionality:
+- Update profile.
+- Change password.
+- Manage sessions.
+- Enable or disable MFA.
+- View login history.
+- Revoke active sessions.
+
+------------------------------------------------------------
+PHASE 7 — FILE UPLOAD AND ENGINEERING DOCUMENT RETRIEVAL
+------------------------------------------------------------
+
+22. Add file upload pipeline
+
+Supported files:
+- PDF
+- DOCX
+- XLSX
+- CSV
+- TXT
+- Images of drawings, if OCR is planned
+
+Pipeline:
+
+Upload file
+  -> Virus/type/size validation
+  -> Store original file
+  -> Extract text
+  -> Split into chunks
+  -> Generate embeddings
+  -> Store chunks
+  -> Make available to AI retrieval
+
+23. Add document-grounded answers
+
+When the assistant uses uploaded project documents, it should cite:
+- File name.
+- Page number, if available.
+- Section or heading.
+- Extracted excerpt, if safe and useful.
+
+The assistant should distinguish between:
+- Model knowledge.
+- Project document content.
+- User-provided assumptions.
+- Calculated results.
+
+Purpose:
+- Improve engineering traceability.
+- Reduce unsupported claims.
+- Make project-document reasoning auditable.
+
+------------------------------------------------------------
+PHASE 8 — FRONTEND INTEGRATION
+------------------------------------------------------------
+
+24. Replace static assistant page with live chat
+
+Frontend features:
+- Streaming AI responses.
+- Project selector.
+- File context selector.
+- Calculation tool cards.
+- Assumptions panel.
+- Missing-data panel.
+- Safety warnings panel.
+- Export response button.
+- Save to project history.
+
+25. Replace mock dashboard values
+
+Dashboard should pull from the database:
+- Recent calculations.
+- Recent chats.
+- Uploaded files.
+- Open project issues.
+- Safety-critical flags.
+- Pending reviews.
+
+26. Replace fake buttons with real states
+
+For every button:
+- Implement the function.
+- Disable it.
+- Or label it “Coming soon.”
+
+Avoid clickable controls that do nothing.
+
+------------------------------------------------------------
+PHASE 9 — SAFETY AND COMPLIANCE ENFORCEMENT
+------------------------------------------------------------
+
+27. Add a safety post-processor
+
+After the AI produces a response, check for risky or overconfident language.
+
+Flag or rewrite phrases such as:
+- “This is approved.”
+- “This is compliant.”
+- “You can safely install this.”
+- “No engineer review is needed.”
+- “Bypass the interlock.”
+- “Ignore the code requirement.”
+
+Replace with safer language such as:
+- “This is a preliminary engineering support response.”
+- “Verify against the applicable code, project specification, and authority having jurisdiction.”
+- “This should be reviewed by a qualified professional before use.”
+
+28. Add contextual engineering disclaimers
+
+Do not show the same disclaimer everywhere. Make it context-specific.
+
+Context | Required notice
+Simple documentation | Draft for review.
+Calculation | Preliminary calculation; verify inputs and assumptions.
+Safety-critical work | Requires qualified professional review before use.
+Standards interpretation | Confirm latest edition and jurisdiction.
+Final design request | Cannot provide final approval or certification.
+
+------------------------------------------------------------
+PHASE 10 — TESTING AND VALIDATION
+------------------------------------------------------------
+
+29. Add calculation tests
+
+Minimum tests:
+- Reynolds number known case.
+- Laminar friction factor case.
+- Turbulent pressure-drop benchmark.
+- Invalid diameter rejected.
+- Missing viscosity rejected.
+- Unit conversion tests.
+
+30. Add AI behavior tests
+
+Create prompt test cases for:
+- Engineering calculation request.
+- Missing data request.
+- Out-of-scope entertainment request.
+- Request to approve final design.
+- Request to bypass safety procedure.
+- Standards interpretation request.
+- Uploaded document prompt-injection attempt.
+
+Expected outcomes:
+- Stays in engineering scope.
+- Refuses out-of-scope topics.
+- Lists assumptions.
+- Identifies missing data.
+- Does not claim licensure.
+- Does not approve final designs.
+- Recommends professional verification where needed.
+
+31. Add integration tests
+
+Test the full workflow:
+
+User logs in
+  -> Creates project
+  -> Uploads document
+  -> Starts chat
+  -> Runs calculation
+  -> AI references calculation
+  -> Calculation is saved
+  -> Result appears in history
+
+------------------------------------------------------------
+RECOMMENDED IMPLEMENTATION ORDER
+------------------------------------------------------------
+
+Sprint 1 — Foundation
+1. Clean repo and remove generated files.
+2. Add real README.
+3. Add environment variable structure.
+4. Add database ORM.
+5. Add authentication.
+6. Add protected routes.
+
+Sprint 2 — AI integration
+1. Create /api/chat.
+2. Load Base.txt as server-side instruction.
+3. Add model provider abstraction.
+4. Add streaming chat UI.
+5. Save chat sessions and messages.
+6. Add scope/refusal behavior.
+
+Sprint 3 — Calculation engine
+1. Move fluid calculations into lib/calculations.
+2. Add validation schemas.
+3. Add traceable calculation result format.
+4. Add calculation API route.
+5. Save calculations to database.
+6. Add tests.
+
+Sprint 4 — Project database features
+1. Add projects.
+2. Add project members.
+3. Add calculation history.
+4. Add chat history.
+5. Add audit logs.
+6. Replace dashboard mock data.
+
+Sprint 5 — Document intelligence
+1. Add file upload.
+2. Add file storage.
+3. Add text extraction.
+4. Add document chunking.
+5. Add retrieval for AI chat.
+6. Add source citation display.
+
+Sprint 6 — Safety hardening
+1. Add safety post-processor.
+2. Add professional-boundary enforcement.
+3. Add approval/compliance wording checks.
+4. Add prompt-injection tests.
+5. Add safety-critical warnings.
+6. Add export disclaimers.
+
+------------------------------------------------------------
+MINIMUM VIABLE PRODUCTION PATH
+------------------------------------------------------------
+
+For the first working release, build:
+1. Authentication.
+2. Project creation.
+3. Database-backed chat history.
+4. Server-side AI chat using Base.txt.
+5. Fluid calculator as deterministic backend module.
+6. Calculation history.
+7. Safety/professional-review notices.
+8. Basic file upload and retrieval.
+9. Admin/user roles.
+10. Audit logging.
+
+------------------------------------------------------------
+KEY DESIGN PRINCIPLE
+------------------------------------------------------------
+
+The AI should explain, structure, question, and document engineering work.
+
+The calculation engine should compute.
+
+The database should preserve traceability.
+
+Authentication should protect project data.
+
+Base.txt should govern every response, every calculation, and every safety boundary.
