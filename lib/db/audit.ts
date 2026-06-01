@@ -4,10 +4,10 @@ import { toJsonSafe } from "@/lib/db/serialization";
 export type AuditEventInput = {
   action: string;
   entityType: string;
-  entityId?: string;
-  userId?: string;
-  projectId?: string;
-  metadata?: Record<string, unknown>;
+  entityId?: string | null;
+  userId?: string | null;
+  projectId?: string | null;
+  metadata?: unknown;
 };
 
 export async function logAuditEvent(input: AuditEventInput) {
@@ -15,9 +15,9 @@ export async function logAuditEvent(input: AuditEventInput) {
     data: {
       action: input.action,
       entityType: input.entityType,
-      entityId: input.entityId,
-      userId: input.userId,
-      projectId: input.projectId,
+      entityId: input.entityId ?? null,
+      userId: input.userId ?? null,
+      projectId: input.projectId ?? null,
       metadataJson: toJsonSafe(input.metadata ?? {}),
     },
   });
