@@ -1,4 +1,4 @@
-# Phase 4 Calculation Test Cases
+# Active Calculation Test Cases
 
 ## API status
 
@@ -8,30 +8,30 @@ curl http://localhost:3000/api/calculations
 
 Expected:
 
-- `status = phase_4_calculation_engine_ready`
+- `status = calculation_engine_ready`
 - Implemented calculation includes `fluid_pressure_drop`
 
 ## Fluid calculation happy path
 
 ```bash
 curl -X POST http://localhost:3000/api/calculations/fluid/pressure-drop \
-  -H "Content-Type: application/json" \
-  -d '{
-    "diameter_mm": 100,
-    "length_m": 20,
-    "velocity_m_s": 2,
-    "density_kg_m3": 998,
-    "viscosity_pa_s": 0.001,
-    "roughness_mm": 0.046,
-    "minorLossCoefficient": 0,
-    "fluidName": "Water",
-    "pipeMaterial": "Commercial steel"
-  }'
+ -H "Content-Type: application/json" \
+ -d '{
+ "diameter_mm": 100,
+ "length_m": 20,
+ "velocity_m_s": 2,
+ "density_kg_m3": 998,
+ "viscosity_pa_s": 0.001,
+ "roughness_mm": 0.046,
+ "minorLossCoefficient": 0,
+ "fluidName": "Water",
+ "pipeMaterial": "Commercial steel"
+ }'
 ```
 
 Expected:
 
-- `status = phase_4_calculation_complete`
+- `status = calculation_complete`
 - Reynolds number is about 199,600
 - Flow regime is turbulent
 - Friction factor is calculated by Swamee-Jain
@@ -41,14 +41,14 @@ Expected:
 
 ```bash
 curl -X POST http://localhost:3000/api/calculations/fluid/pressure-drop \
-  -H "Content-Type: application/json" \
-  -d '{
-    "diameter_mm": 0,
-    "length_m": 20,
-    "velocity_m_s": 2,
-    "density_kg_m3": 998,
-    "viscosity_pa_s": 0.001
-  }'
+ -H "Content-Type: application/json" \
+ -d '{
+ "diameter_mm": 0,
+ "length_m": 20,
+ "velocity_m_s": 2,
+ "density_kg_m3": 998,
+ "viscosity_pa_s": 0.001
+ }'
 ```
 
 Expected:

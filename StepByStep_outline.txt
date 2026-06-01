@@ -14,7 +14,7 @@ The application should behave as a controlled engineering assistant, not a gener
 - Preserve traceability through saved chats, calculations, files, and audit logs.
 
 ------------------------------------------------------------
-PHASE 1 — ESTABLISH THE SYSTEM ARCHITECTURE
+SECTION 1 — ESTABLISH THE SYSTEM ARCHITECTURE
 ------------------------------------------------------------
 
 1. Clean the project structure
@@ -22,24 +22,24 @@ PHASE 1 — ESTABLISH THE SYSTEM ARCHITECTURE
 Recommended structure:
 
 app/
-  api/
-    chat/
-    calculations/
-    files/
-    projects/
-    auth/
-  dashboard/
-  assistant/
-  calculators/
+ api/
+ chat/
+ calculations/
+ files/
+ projects/
+ auth/
+ dashboard/
+ assistant/
+ calculators/
 components/
 lib/
-  ai/
-  auth/
-  db/
-  calculations/
-  documents/
-  safety/
-  validation/
+ ai/
+ auth/
+ db/
+ calculations/
+ documents/
+ safety/
+ validation/
 data/
 prisma/ or drizzle/
 tests/
@@ -63,7 +63,7 @@ README should include:
 - Safety and compliance notes.
 
 ------------------------------------------------------------
-PHASE 2 — CONVERT BASE.TXT INTO ENFORCEABLE APPLICATION LOGIC
+SECTION 2 — CONVERT BASE.TXT INTO ENFORCEABLE APPLICATION LOGIC
 ------------------------------------------------------------
 
 2. Load Base.txt as the core AI system instruction
@@ -103,14 +103,14 @@ The AI should return both answer content and structured metadata.
 Recommended response type:
 
 type EngineeringAIResponse = {
-  answer: string;
-  scopeStatus: "engineering" | "out_of_scope" | "needs_clarification";
-  assumptions: string[];
-  missingData: string[];
-  safetyWarnings: string[];
-  standardsReferenced: string[];
-  requiresProfessionalReview: boolean;
-  confidenceLevel: "rough_estimate" | "preliminary" | "detailed" | "not_applicable";
+ answer: string;
+ scopeStatus: "engineering" | "out_of_scope" | "needs_clarification";
+ assumptions: string[];
+ missingData: string[];
+ safetyWarnings: string[];
+ standardsReferenced: string[];
+ requiresProfessionalReview: boolean;
+ confidenceLevel: "rough_estimate" | "preliminary" | "detailed" | "not_applicable";
 };
 
 Purpose:
@@ -118,7 +118,7 @@ Purpose:
 - Avoid burying critical engineering caveats inside free text.
 
 ------------------------------------------------------------
-PHASE 3 — AI API INTEGRATION
+SECTION 3 — AI API INTEGRATION
 ------------------------------------------------------------
 
 5. Build the server-side chat endpoint
@@ -141,15 +141,15 @@ Responsibilities:
 Recommended route flow:
 
 User message
-  -> Authentication check
-  -> Project permission check
-  -> Scope classifier
-  -> Retrieve project context/documents
-  -> Inject Base.txt instructions
-  -> Call AI API
-  -> Run safety/output validator
-  -> Save message and response
-  -> Return streamed answer
+ -> Authentication check
+ -> Project permission check
+ -> Scope classifier
+ -> Retrieve project context/documents
+ -> Inject Base.txt instructions
+ -> Call AI API
+ -> Run safety/output validator
+ -> Save message and response
+ -> Return streamed answer
 
 6. Use a model-provider abstraction
 
@@ -160,8 +160,8 @@ lib/ai/provider.ts
 Recommended interface:
 
 export interface AIProvider {
-  generateEngineeringResponse(input: EngineeringChatInput): Promise<EngineeringAIResponse>;
-  streamEngineeringResponse(input: EngineeringChatInput): AsyncIterable<string>;
+ generateEngineeringResponse(input: EngineeringChatInput): Promise<EngineeringAIResponse>;
+ streamEngineeringResponse(input: EngineeringChatInput): AsyncIterable<string>;
 }
 
 Purpose:
@@ -208,7 +208,7 @@ Behavior:
 - If ambiguous, ask for engineering context or clarify missing technical details.
 
 ------------------------------------------------------------
-PHASE 4 — CALCULATION ENGINE INTEGRATION
+SECTION 4 — CALCULATION ENGINE INTEGRATION
 ------------------------------------------------------------
 
 9. Separate calculations from UI
@@ -218,16 +218,16 @@ Move engineering calculations out of React components.
 Recommended structure:
 
 lib/calculations/
-  fluid/
-    pressureDrop.ts
-    reynolds.ts
-    frictionFactor.ts
-    schemas.ts
-    tests/
-  units/
-    convert.ts
-  common/
-    resultTypes.ts
+ fluid/
+ pressureDrop.ts
+ reynolds.ts
+ frictionFactor.ts
+ schemas.ts
+ tests/
+ units/
+ convert.ts
+ common/
+ resultTypes.ts
 
 The frontend should call calculation APIs or shared calculation modules instead of embedding engineering math directly in page components.
 
@@ -236,17 +236,17 @@ The frontend should call calculation APIs or shared calculation modules instead 
 Recommended type:
 
 type CalculationResult = {
-  calculationType: string;
-  objective: string;
-  inputs: Record<string, InputValue>;
-  assumptions: string[];
-  missingData: string[];
-  formulas: FormulaStep[];
-  steps: CalculationStep[];
-  results: Record<string, ResultValue>;
-  warnings: string[];
-  limitations: string[];
-  requiresProfessionalReview: boolean;
+ calculationType: string;
+ objective: string;
+ inputs: Record<string, InputValue>;
+ assumptions: string[];
+ missingData: string[];
+ formulas: FormulaStep[];
+ steps: CalculationStep[];
+ results: Record<string, ResultValue>;
+ warnings: string[];
+ limitations: string[];
+ requiresProfessionalReview: boolean;
 };
 
 Purpose:
@@ -260,12 +260,12 @@ Use a schema validation library such as Zod.
 Example:
 
 const FluidPressureDropInputSchema = z.object({
-  diameter_m: z.number().positive(),
-  length_m: z.number().positive(),
-  velocity_m_s: z.number().positive(),
-  density_kg_m3: z.number().positive(),
-  viscosity_pa_s: z.number().positive(),
-  roughness_m: z.number().nonnegative().optional(),
+ diameter_m: z.number().positive(),
+ length_m: z.number().positive(),
+ velocity_m_s: z.number().positive(),
+ density_kg_m3: z.number().positive(),
+ viscosity_pa_s: z.number().positive(),
+ roughness_m: z.number().nonnegative().optional(),
 });
 
 Reject invalid values such as:
@@ -321,7 +321,7 @@ Purpose:
 - Support history, auditability, project review, export, and future references by the AI assistant.
 
 ------------------------------------------------------------
-PHASE 5 — DATABASE INTEGRATION
+SECTION 5 — DATABASE INTEGRATION
 ------------------------------------------------------------
 
 14. Choose the database stack
@@ -461,7 +461,7 @@ Log actions such as:
 Audit logs should not be editable by normal users.
 
 ------------------------------------------------------------
-PHASE 6 — USER AUTHENTICATION AND AUTHORIZATION
+SECTION 6 — USER AUTHENTICATION AND AUTHORIZATION
 ------------------------------------------------------------
 
 18. Add an authentication provider
@@ -496,10 +496,10 @@ Protected routes should include:
 Route protection flow:
 
 Request
-  -> Check session
-  -> Check project membership
-  -> Check role permission
-  -> Execute action
+ -> Check session
+ -> Check project membership
+ -> Check role permission
+ -> Execute action
 
 20. Add role permissions
 
@@ -525,7 +525,7 @@ Replace mock security pages with working functionality:
 - Revoke active sessions.
 
 ------------------------------------------------------------
-PHASE 7 — FILE UPLOAD AND ENGINEERING DOCUMENT RETRIEVAL
+SECTION 7 — FILE UPLOAD AND ENGINEERING DOCUMENT RETRIEVAL
 ------------------------------------------------------------
 
 22. Add file upload pipeline
@@ -541,13 +541,13 @@ Supported files:
 Pipeline:
 
 Upload file
-  -> Virus/type/size validation
-  -> Store original file
-  -> Extract text
-  -> Split into chunks
-  -> Generate embeddings
-  -> Store chunks
-  -> Make available to AI retrieval
+ -> Virus/type/size validation
+ -> Store original file
+ -> Extract text
+ -> Split into chunks
+ -> Generate embeddings
+ -> Store chunks
+ -> Make available to AI retrieval
 
 23. Add document-grounded answers
 
@@ -569,7 +569,7 @@ Purpose:
 - Make project-document reasoning auditable.
 
 ------------------------------------------------------------
-PHASE 8 — FRONTEND INTEGRATION
+SECTION 8 — FRONTEND INTEGRATION
 ------------------------------------------------------------
 
 24. Replace static assistant page with live chat
@@ -605,7 +605,7 @@ For every button:
 Avoid clickable controls that do nothing.
 
 ------------------------------------------------------------
-PHASE 9 — SAFETY AND COMPLIANCE ENFORCEMENT
+SECTION 9 — SAFETY AND COMPLIANCE ENFORCEMENT
 ------------------------------------------------------------
 
 27. Add a safety post-processor
@@ -637,7 +637,7 @@ Standards interpretation | Confirm latest edition and jurisdiction.
 Final design request | Cannot provide final approval or certification.
 
 ------------------------------------------------------------
-PHASE 10 — TESTING AND VALIDATION
+SECTION 10 — TESTING AND VALIDATION
 ------------------------------------------------------------
 
 29. Add calculation tests
@@ -675,13 +675,13 @@ Expected outcomes:
 Test the full workflow:
 
 User logs in
-  -> Creates project
-  -> Uploads document
-  -> Starts chat
-  -> Runs calculation
-  -> AI references calculation
-  -> Calculation is saved
-  -> Result appears in history
+ -> Creates project
+ -> Uploads document
+ -> Starts chat
+ -> Runs calculation
+ -> AI references calculation
+ -> Calculation is saved
+ -> Result appears in history
 
 ------------------------------------------------------------
 RECOMMENDED IMPLEMENTATION ORDER

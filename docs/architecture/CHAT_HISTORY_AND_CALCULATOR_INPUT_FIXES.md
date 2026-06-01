@@ -1,4 +1,4 @@
-# Phase 5.2 — Chat History and Calculator Input Fixes
+# Chat history and calculator input update — Chat History and Calculator Input Fixes
 
 ## Purpose
 

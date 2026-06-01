@@ -1,24 +1,23 @@
 # Engineering GPT
 
-Engineering GPT is a controlled engineering assistant prototype for technical project work. It combines a Base.txt-governed AI assistant, deterministic engineering calculators, and Phase 5 database-backed traceability.
+Engineering GPT is a controlled engineering assistant prototype for technical project work. It combines a Base.txt-governed AI assistant, deterministic engineering calculators, and database-backed traceability.
 
-## Current phase
-
-**Phase 5.1 — Database Integration with Free Chat Sessions**
+## Current capabilities
 
 Implemented in this package:
 
 - PostgreSQL schema using Prisma 7.
 - Project, user, organization, membership, chat, calculation, uploaded-file, document-chunk, standards-reference, settings, and audit-log tables.
 - Project-scoped access checks for real project data.
-- User-scoped free chat sessions that do not require a Project.
+- User-scoped free chat sessions that do not require a project.
 - Audit logging for key actions.
 - Persisted chat sessions and messages for both free chats and project chats.
 - Persisted calculation results with assumptions, warnings, limitations, review status, and professional-review flags.
 - `/api/projects`, `/api/dashboard`, `/api/history`, and `/api/audit`.
-- Assistant, calculator, and dashboard UI touchpoints wired to the Phase 5 APIs.
+- Assistant, calculator, and dashboard UI touchpoints wired to the active APIs.
+- Collapsible right-side chat-history panel on the assistant page.
 
-Full password/session authentication, MFA, and secure account-management pages are intentionally reserved for **Phase 6**. Phase 5 consumes trusted user context and local development headers so database integration can be validated before the auth provider is selected.
+Full password/session authentication, MFA, and secure account-management pages are intentionally left for the selected authentication provider. The current app consumes trusted user context and local development headers so database integration can be validated before that provider is selected.
 
 ## Requirements
 
@@ -31,16 +30,15 @@ Full password/session authentication, MFA, and secure account-management pages a
 
 ```bash
 npm install
-cp .env.example .env
-# edit DATABASE_URL and AI provider variables
+# create .env and edit DATABASE_URL plus AI provider variables as needed
 npm run db:generate
 npm run db:deploy
 npm run dev
 ```
 
-For development, `ENABLE_LOCAL_DEV_USER=true` lets the app auto-provision a local engineering user. The assistant page defaults to free chat and no longer creates or requires a default project for simple engineering Q&A. In production, set up Phase 6 authentication or a trusted gateway and configure `ENABLE_TRUSTED_AUTH_HEADERS=true` only behind a secure boundary.
+For development, `ENABLE_LOCAL_DEV_USER=true` lets the app auto-provision a local engineering user. The assistant page defaults to free chat and no longer creates or requires a default project for simple engineering Q&A. In production, connect a real authentication provider or trusted gateway and configure `ENABLE_TRUSTED_AUTH_HEADERS=true` only behind a secure boundary.
 
-> Note: the handoff archive does not include a regenerated package lock because registry access timed out in the build environment after adding Prisma dependencies. Run `npm install` in your development environment to regenerate `package-lock.json`.
+> Note: the handoff archive does not include a regenerated package lock. Run `npm install` in your development environment to regenerate `package-lock.json`.
 
 ## Useful commands
 
@@ -55,21 +53,19 @@ npm run db:studio    # open Prisma Studio
 
 ## Environment variables
 
-See `.env.example` for local/development defaults and `.env.production.example` for deployment defaults. Both templates are safe to commit because they contain placeholders only.
-
-Important Phase 5 values:
+Important database and runtime values:
 
 ```bash
 DATABASE_URL=postgresql://engineering_gpt:engineering_gpt@localhost:5432/engineering_gpt?schema=public
-REQUIRE_PHASE5_DATABASE=false          # set true in production
-ENABLE_LOCAL_DEV_USER=true             # local only
-ENABLE_TRUSTED_AUTH_HEADERS=false      # true only behind a trusted gateway
-AI_PROVIDER=mock                       # use openai-compatible for live AI
+REQUIRE_DATABASE=false
+ENABLE_LOCAL_DEV_USER=true
+ENABLE_TRUSTED_AUTH_HEADERS=false
+AI_PROVIDER=mock
 AI_LIVE_ENABLED=false
-AI_MODEL=                              # required when AI_PROVIDER=openai-compatible
+AI_MODEL=
 ```
 
-Production should set `REQUIRE_PHASE5_DATABASE=true`, `ENABLE_LOCAL_DEV_USER=false`, configure trusted authenticated headers only behind a secure boundary, and store all real secrets in the host secret manager rather than committing them to the repository.
+Production should set `REQUIRE_DATABASE=true`, `ENABLE_LOCAL_DEV_USER=false`, configure trusted authenticated headers only behind a secure boundary, and store all real secrets in the host secret manager rather than committing them to the repository.
 
 ## API overview
 
@@ -85,11 +81,10 @@ Production should set `REQUIRE_PHASE5_DATABASE=true`, `ENABLE_LOCAL_DEV_USER=fal
 
 The assistant provides engineering support, education, drafting, preliminary calculations, and structured technical review. It does not approve, stamp, certify, or replace qualified professional engineering judgment. Safety-critical, regulated, final-design, construction, operational, or compliance work must be reviewed by the appropriate qualified professional and applicable authority.
 
-## Phase 5.2 usability patch
+## Usability updates
 
-This package includes the Phase 5 free-chat rework plus two local-testing fixes:
-
-- Calculator numeric fields now select their current value on focus, so typing into a default `0` replaces it instead of appending values such as `05`.
-- The `/assistant` page now restores the active free chat after navigation and displays recent free chat history from `/api/history`.
+- Calculator numeric fields select their current value on focus, so typing into a default `0` replaces it instead of appending values such as `05`.
+- The `/assistant` page restores the active free chat after navigation and displays recent free chat history from `/api/history`.
+- The assistant chat history is displayed in a collapsible right panel on desktop and a drawer on smaller screens.
 
 Free chat remains user-scoped and project-independent. Project chat still requires a real `projectId` and membership.

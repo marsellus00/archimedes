@@ -10,15 +10,15 @@ The provider interface is defined in `lib/ai/types.ts`:
 
 ```ts
 export type EngineeringAIProvider = {
-  info: AIProviderInfo;
-  generateEngineeringResponse(input: EngineeringAIProviderInput): Promise<EngineeringAIProviderResult>;
-  streamEngineeringResponse?(input: EngineeringAIProviderInput): AsyncIterable<string>;
+ info: AIProviderInfo;
+ generateEngineeringResponse(input: EngineeringAIProviderInput): Promise<EngineeringAIProviderResult>;
+ streamEngineeringResponse?(input: EngineeringAIProviderInput): AsyncIterable<string>;
 };
 ```
 
 `lib/ai/provider.ts` selects either:
 
-- `mock`: deterministic Phase 3 fallback provider.
+- `mock`: deterministic AI provider integration fallback provider.
 - `openai-compatible`: live chat-completions provider.
 
 ## Default mode

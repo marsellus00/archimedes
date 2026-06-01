@@ -1,4 +1,4 @@
-# Phase 4 Calculator Page Test Cases
+# Active Calculator Page Test Cases
 
 ## Navigation
 
@@ -38,6 +38,6 @@ Each page should show:
 - `POST /api/calculations/thermal/conduction`
 - `POST /api/calculations/electrical/voltage-drop`
 
-Invalid inputs should return `phase_4_calculation_validation_failed` with field-level validation issues.
+Invalid inputs should return `calculation_validation_failed` with field-level validation issues.
 
 Safety-critical pages should include professional-review and no-final-approval language.

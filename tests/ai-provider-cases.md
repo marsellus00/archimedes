@@ -1,4 +1,4 @@
-# Phase 3 AI Provider Behavior Cases
+# AI provider integration AI Provider Behavior Cases
 
 Use these cases during manual or future automated testing.
 
@@ -19,7 +19,7 @@ Request:
 
 Expected:
 
-- `implementationStatus` is `phase_3_deterministic_fallback`.
+- `implementationStatus` is `deterministic_fallback`.
 - `provider.providerMode` is `mock`.
 - Response is a valid EngineeringAIResponse.
 - Warnings state that no live AI model was called.
@@ -86,7 +86,7 @@ Expected:
 Environment:
 
 ```env
-REQUIRE_PHASE3_AUTH_CONTEXT="true"
+REQUIRE_AUTH_CONTEXT="true"
 ```
 
 Request without header:

@@ -1,33 +1,33 @@
-# Phase 5 Review — Database Integration
+# Database-backed Review — Database Integration
 
-Phase 5 converts the prototype from mostly stateless API responses into a database-backed engineering workspace. It introduces a production PostgreSQL model for traceability while keeping full account authentication as the next phase.
+Database-backed converts the prototype from mostly stateless API responses into a database-backed engineering workspace. It introduces a production PostgreSQL model for traceability while keeping full account authentication as the next roadmap item.
 
 ## What changed
 
 - Added Prisma 7 with PostgreSQL adapter support.
 - Added a normalized project data model:
-  - users
-  - organizations
-  - projects
-  - project members
-  - chat sessions
-  - chat messages
-  - calculations
-  - uploaded files
-  - document chunks
-  - audit logs
-  - engineering standard references
-  - user settings
+ - users
+ - organizations
+ - projects
+ - project members
+ - chat sessions
+ - chat messages
+ - calculations
+ - uploaded files
+ - document chunks
+ - audit logs
+ - engineering standard references
+ - user settings
 - Added project membership and role-based permission checks.
 - Added audit logging for project creation, chat responses, and calculations.
 - Persisted chat sessions/messages from `/api/chat` when `DATABASE_URL` is configured.
 - Persisted deterministic calculation results from calculator endpoints when `DATABASE_URL` is configured.
 - Added `/api/projects`, `/api/dashboard`, `/api/history`, and `/api/audit`.
-- Updated assistant, calculator, and dashboard UI touchpoints for Phase 5 persistence.
+- Updated assistant, calculator, and dashboard UI touchpoints for Database-backed persistence.
 
 ## Production boundary
 
-Phase 5 intentionally does not implement password/session security from scratch. The app now consumes a trusted authenticated context and enforces database access around it. Phase 6 should integrate a mature authentication provider and replace the trusted-header development bridge.
+Database-backed intentionally does not implement password/session security from scratch. The app now consumes a trusted authenticated context and enforces database access around it. the authentication layer should integrate a mature authentication provider and replace the trusted-header development bridge.
 
 ## Database setup
 
@@ -59,8 +59,8 @@ Project data access is enforced through `ProjectMember` roles.
 
 The audit log captures project creation, default project creation, chat response generation, and calculation execution. Audit rows are separate from primary entities and should not be editable by normal users.
 
-## Remaining phases
+## Remaining roadmap items
 
-- Phase 6: mature authentication and authorization UI.
-- Phase 7: file upload, storage, extraction, chunking, embeddings, and document-grounded retrieval.
-- Phase 8+: deeper frontend replacement of mock analytics/widgets with live project data.
+- the authentication layer: mature authentication and authorization UI.
+- Document retrieval: file upload, storage, extraction, chunking, embeddings, and document-grounded retrieval.
+- future: deeper frontend replacement of mock analytics/widgets with live project data.

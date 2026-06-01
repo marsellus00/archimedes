@@ -1,8 +1,8 @@
-# Phase 4 Review — Deterministic Calculation Engine
+# Active Review — Deterministic Calculation Engine
 
 ## Objective
 
-Phase 4 moves engineering calculations out of static UI logic and into deterministic, reusable calculation modules. The AI assistant can continue to explain and document, but implemented calculation modules now compute numeric outputs for supported calculations.
+Active moves engineering calculations out of static UI logic and into deterministic, reusable calculation modules. The AI assistant can continue to explain and document, but implemented calculation modules now compute numeric outputs for supported calculations.
 
 This checkpoint also includes the updated scope-calibrated `Base.txt` in the project root.
 
@@ -13,13 +13,13 @@ This checkpoint also includes the updated scope-calibrated `Base.txt` in the pro
 - Added validation helpers in `lib/calculations/common/validation.ts`.
 - Added unit conversion helpers in `lib/calculations/units/convert.ts`.
 - Added deterministic calculation modules for:
-  - Fluid pressure drop
-  - Reynolds number
-  - Manning open-channel flow
-  - Retaining wall stability screening
-  - Column buckling screening
-  - Thermal conduction
-  - Electrical voltage drop
+ - Fluid pressure drop
+ - Reynolds number
+ - Manning open-channel flow
+ - Retaining wall stability screening
+ - Column buckling screening
+ - Thermal conduction
+ - Electrical voltage drop
 - Updated `/calculators` so all visible calculator cards route to implemented pages.
 - Added a reusable calculation workspace UI for non-fluid calculators.
 - Updated the Fluid Dynamics calculator page to use the shared calculation module.

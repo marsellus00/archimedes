@@ -1,4 +1,4 @@
-# Phase 2 Review Checkpoint
+# Base instruction enforcement Review Checkpoint
 
 ## Objective
 
@@ -14,10 +14,10 @@ Convert `Base.txt` from a static instruction document into enforceable server-si
 - Added response wording guardrails in `lib/safety/responseGuards.ts`.
 - Added contextual engineering notices in `lib/safety/contextualNotices.ts`.
 - Added response normalization and validation helpers in `lib/validation/engineeringResponse.ts`.
-- Replaced the placeholder `app/api/chat/.gitkeep` scaffold with a Phase 2 contract-only chat route.
+- Replaced the placeholder `app/api/chat/.gitkeep` scaffold with a Base instruction enforcement contract-only chat route.
 - Added documentation for the AI instruction contract and prompt-injection boundary.
-- Added Phase 2 behavior test cases for manual or future automated validation.
-- Updated README and API documentation to reflect Phase 2 status.
+- Added Base instruction enforcement behavior test cases for manual or future automated validation.
+- Updated README and API documentation to reflect Base instruction enforcement status.
 
 ## Safe review boundary
 
@@ -45,4 +45,4 @@ The `/api/chat` route is a contract-preview endpoint only. It classifies the req
 
 ## Recommended next step
 
-Proceed to Phase 3 after review: attach a model-provider abstraction and server-side AI API integration to the Phase 2 prompt hierarchy and response contract.
+Proceed to AI provider integration after review: attach a model-provider abstraction and server-side AI API integration to the Base instruction enforcement prompt hierarchy and response contract.

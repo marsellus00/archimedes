@@ -1,4 +1,4 @@
--- Phase 5 database foundation for Engineering GPT.
+-- Database foundation for Engineering GPT.
 -- Requires PostgreSQL. Document retrieval embeddings use pgvector; install pgvector in the database before deploying this migration.
 CREATE EXTENSION IF NOT EXISTS vector;
 
@@ -9,148 +9,148 @@ CREATE TYPE "CalculationReviewStatus" AS ENUM ('DRAFT', 'NEEDS_REVIEW', 'REVIEWE
 CREATE TYPE "UploadedFileStatus" AS ENUM ('UPLOADED', 'PROCESSING', 'INDEXED', 'FAILED');
 
 CREATE TABLE "users" (
-  "id" TEXT NOT NULL,
-  "email" TEXT NOT NULL,
-  "name" TEXT,
-  "role" "WorkspaceRole" NOT NULL DEFAULT 'ENGINEER',
-  "external_id" TEXT,
-  "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  "updated_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  CONSTRAINT "users_pkey" PRIMARY KEY ("id")
+ "id" TEXT NOT NULL,
+ "email" TEXT NOT NULL,
+ "name" TEXT,
+ "role" "WorkspaceRole" NOT NULL DEFAULT 'ENGINEER',
+ "external_id" TEXT,
+ "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ "updated_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ CONSTRAINT "users_pkey" PRIMARY KEY ("id")
 );
 
 CREATE TABLE "organizations" (
-  "id" TEXT NOT NULL,
-  "name" TEXT NOT NULL,
-  "owner_id" TEXT,
-  "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  "updated_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  CONSTRAINT "organizations_pkey" PRIMARY KEY ("id")
+ "id" TEXT NOT NULL,
+ "name" TEXT NOT NULL,
+ "owner_id" TEXT,
+ "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ "updated_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ CONSTRAINT "organizations_pkey" PRIMARY KEY ("id")
 );
 
 CREATE TABLE "projects" (
-  "id" TEXT NOT NULL,
-  "organization_id" TEXT NOT NULL,
-  "name" TEXT NOT NULL,
-  "description" TEXT,
-  "discipline" TEXT,
-  "jurisdiction" TEXT,
-  "status" "ProjectStatus" NOT NULL DEFAULT 'ACTIVE',
-  "metadata_json" JSONB NOT NULL DEFAULT '{}',
-  "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  "updated_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  CONSTRAINT "projects_pkey" PRIMARY KEY ("id")
+ "id" TEXT NOT NULL,
+ "organization_id" TEXT NOT NULL,
+ "name" TEXT NOT NULL,
+ "description" TEXT,
+ "discipline" TEXT,
+ "jurisdiction" TEXT,
+ "status" "ProjectStatus" NOT NULL DEFAULT 'ACTIVE',
+ "metadata_json" JSONB NOT NULL DEFAULT '{}',
+ "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ "updated_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ CONSTRAINT "projects_pkey" PRIMARY KEY ("id")
 );
 
 CREATE TABLE "project_members" (
-  "id" TEXT NOT NULL,
-  "project_id" TEXT NOT NULL,
-  "user_id" TEXT NOT NULL,
-  "role" "WorkspaceRole" NOT NULL DEFAULT 'VIEWER',
-  "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  CONSTRAINT "project_members_pkey" PRIMARY KEY ("id")
+ "id" TEXT NOT NULL,
+ "project_id" TEXT NOT NULL,
+ "user_id" TEXT NOT NULL,
+ "role" "WorkspaceRole" NOT NULL DEFAULT 'VIEWER',
+ "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ CONSTRAINT "project_members_pkey" PRIMARY KEY ("id")
 );
 
 CREATE TABLE "chat_sessions" (
-  "id" TEXT NOT NULL,
-  "project_id" TEXT NOT NULL,
-  "user_id" TEXT NOT NULL,
-  "title" TEXT NOT NULL,
-  "metadata_json" JSONB NOT NULL DEFAULT '{}',
-  "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  "updated_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  CONSTRAINT "chat_sessions_pkey" PRIMARY KEY ("id")
+ "id" TEXT NOT NULL,
+ "project_id" TEXT NOT NULL,
+ "user_id" TEXT NOT NULL,
+ "title" TEXT NOT NULL,
+ "metadata_json" JSONB NOT NULL DEFAULT '{}',
+ "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ "updated_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ CONSTRAINT "chat_sessions_pkey" PRIMARY KEY ("id")
 );
 
 CREATE TABLE "chat_messages" (
-  "id" TEXT NOT NULL,
-  "chat_session_id" TEXT NOT NULL,
-  "project_id" TEXT NOT NULL,
-  "user_id" TEXT,
-  "role" "ChatMessageRole" NOT NULL,
-  "content" TEXT NOT NULL,
-  "metadata_json" JSONB NOT NULL DEFAULT '{}',
-  "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  CONSTRAINT "chat_messages_pkey" PRIMARY KEY ("id")
+ "id" TEXT NOT NULL,
+ "chat_session_id" TEXT NOT NULL,
+ "project_id" TEXT NOT NULL,
+ "user_id" TEXT,
+ "role" "ChatMessageRole" NOT NULL,
+ "content" TEXT NOT NULL,
+ "metadata_json" JSONB NOT NULL DEFAULT '{}',
+ "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ CONSTRAINT "chat_messages_pkey" PRIMARY KEY ("id")
 );
 
 CREATE TABLE "calculations" (
-  "id" TEXT NOT NULL,
-  "project_id" TEXT NOT NULL,
-  "user_id" TEXT NOT NULL,
-  "linked_chat_message_id" TEXT,
-  "calculation_type" TEXT NOT NULL,
-  "objective" TEXT,
-  "input_json" JSONB NOT NULL,
-  "result_json" JSONB NOT NULL,
-  "unit_system" TEXT,
-  "assumptions_json" JSONB NOT NULL DEFAULT '[]',
-  "warnings_json" JSONB NOT NULL DEFAULT '[]',
-  "limitations_json" JSONB NOT NULL DEFAULT '[]',
-  "review_status" "CalculationReviewStatus" NOT NULL DEFAULT 'DRAFT',
-  "requires_professional_review" BOOLEAN NOT NULL DEFAULT true,
-  "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  "updated_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  CONSTRAINT "calculations_pkey" PRIMARY KEY ("id")
+ "id" TEXT NOT NULL,
+ "project_id" TEXT NOT NULL,
+ "user_id" TEXT NOT NULL,
+ "linked_chat_message_id" TEXT,
+ "calculation_type" TEXT NOT NULL,
+ "objective" TEXT,
+ "input_json" JSONB NOT NULL,
+ "result_json" JSONB NOT NULL,
+ "unit_system" TEXT,
+ "assumptions_json" JSONB NOT NULL DEFAULT '[]',
+ "warnings_json" JSONB NOT NULL DEFAULT '[]',
+ "limitations_json" JSONB NOT NULL DEFAULT '[]',
+ "review_status" "CalculationReviewStatus" NOT NULL DEFAULT 'DRAFT',
+ "requires_professional_review" BOOLEAN NOT NULL DEFAULT true,
+ "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ "updated_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ CONSTRAINT "calculations_pkey" PRIMARY KEY ("id")
 );
 
 CREATE TABLE "uploaded_files" (
-  "id" TEXT NOT NULL,
-  "project_id" TEXT NOT NULL,
-  "user_id" TEXT NOT NULL,
-  "filename" TEXT NOT NULL,
-  "file_type" TEXT NOT NULL,
-  "storage_url" TEXT NOT NULL,
-  "status" "UploadedFileStatus" NOT NULL DEFAULT 'UPLOADED',
-  "metadata_json" JSONB NOT NULL DEFAULT '{}',
-  "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  "updated_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  CONSTRAINT "uploaded_files_pkey" PRIMARY KEY ("id")
+ "id" TEXT NOT NULL,
+ "project_id" TEXT NOT NULL,
+ "user_id" TEXT NOT NULL,
+ "filename" TEXT NOT NULL,
+ "file_type" TEXT NOT NULL,
+ "storage_url" TEXT NOT NULL,
+ "status" "UploadedFileStatus" NOT NULL DEFAULT 'UPLOADED',
+ "metadata_json" JSONB NOT NULL DEFAULT '{}',
+ "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ "updated_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ CONSTRAINT "uploaded_files_pkey" PRIMARY KEY ("id")
 );
 
 CREATE TABLE "document_chunks" (
-  "id" TEXT NOT NULL,
-  "uploaded_file_id" TEXT NOT NULL,
-  "chunk_text" TEXT NOT NULL,
-  "page_number" INTEGER,
-  "embedding_vector" vector,
-  "metadata_json" JSONB NOT NULL DEFAULT '{}',
-  "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  CONSTRAINT "document_chunks_pkey" PRIMARY KEY ("id")
+ "id" TEXT NOT NULL,
+ "uploaded_file_id" TEXT NOT NULL,
+ "chunk_text" TEXT NOT NULL,
+ "page_number" INTEGER,
+ "embedding_vector" vector,
+ "metadata_json" JSONB NOT NULL DEFAULT '{}',
+ "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ CONSTRAINT "document_chunks_pkey" PRIMARY KEY ("id")
 );
 
 CREATE TABLE "audit_logs" (
-  "id" TEXT NOT NULL,
-  "project_id" TEXT,
-  "user_id" TEXT,
-  "action" TEXT NOT NULL,
-  "entity_type" TEXT NOT NULL,
-  "entity_id" TEXT,
-  "metadata_json" JSONB NOT NULL DEFAULT '{}',
-  "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  CONSTRAINT "audit_logs_pkey" PRIMARY KEY ("id")
+ "id" TEXT NOT NULL,
+ "project_id" TEXT,
+ "user_id" TEXT,
+ "action" TEXT NOT NULL,
+ "entity_type" TEXT NOT NULL,
+ "entity_id" TEXT,
+ "metadata_json" JSONB NOT NULL DEFAULT '{}',
+ "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ CONSTRAINT "audit_logs_pkey" PRIMARY KEY ("id")
 );
 
 CREATE TABLE "engineering_standard_references" (
-  "id" TEXT NOT NULL,
-  "project_id" TEXT,
-  "standard" TEXT NOT NULL,
-  "edition" TEXT,
-  "jurisdiction" TEXT,
-  "notes" TEXT,
-  "metadata_json" JSONB NOT NULL DEFAULT '{}',
-  "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  CONSTRAINT "engineering_standard_references_pkey" PRIMARY KEY ("id")
+ "id" TEXT NOT NULL,
+ "project_id" TEXT,
+ "standard" TEXT NOT NULL,
+ "edition" TEXT,
+ "jurisdiction" TEXT,
+ "notes" TEXT,
+ "metadata_json" JSONB NOT NULL DEFAULT '{}',
+ "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ CONSTRAINT "engineering_standard_references_pkey" PRIMARY KEY ("id")
 );
 
 CREATE TABLE "user_settings" (
-  "id" TEXT NOT NULL,
-  "user_id" TEXT NOT NULL,
-  "key" TEXT NOT NULL,
-  "value_json" JSONB NOT NULL,
-  "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  "updated_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  CONSTRAINT "user_settings_pkey" PRIMARY KEY ("id")
+ "id" TEXT NOT NULL,
+ "user_id" TEXT NOT NULL,
+ "key" TEXT NOT NULL,
+ "value_json" JSONB NOT NULL,
+ "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ "updated_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ CONSTRAINT "user_settings_pkey" PRIMARY KEY ("id")
 );
 
 CREATE UNIQUE INDEX "users_email_key" ON "users"("email");

@@ -5,7 +5,7 @@ The `lib/` directory contains server/client-safe application logic that should n
 ## Current modules
 
 - `ai/`: Base.txt loading, instruction hierarchy, provider abstraction, response contracts, and provider adapters.
-- `calculations/`: Phase 4 deterministic engineering calculation modules.
+- `calculations/`: Active deterministic engineering calculation modules.
 - `safety/`: Scope classification, contextual notices, prompt-injection boundaries, and response wording guardrails.
 - `validation/`: Response validation helpers.
 

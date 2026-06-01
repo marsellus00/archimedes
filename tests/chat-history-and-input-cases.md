@@ -1,4 +1,4 @@
-# Phase 5.2 Manual Test Cases — Chat History and Calculator Inputs
+# Chat history and calculator input update Manual Test Cases — Chat History and Calculator Inputs
 
 ## Calculator number inputs
 

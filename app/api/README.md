@@ -1,23 +1,21 @@
 # API Routes
 
-## Phase 5 status
-
-The API layer now includes database-backed engineering traceability.
+## Current status
 
 | Route | Status | Purpose |
-|---|---|---|
-| `/api/chat` | Phase 5 | Engineering assistant route with Base.txt, scope guards, provider abstraction, persisted chat sessions/messages, and audit metadata |
-| `/api/calculations` | Phase 5 | Catalog of deterministic calculators with database status |
-| `/api/calculations/*` | Phase 5 | Deterministic calculation modules with optional calculation-history persistence |
-| `/api/projects` | Phase 5 | List and create project records |
-| `/api/dashboard` | Phase 5 | Project-scoped live dashboard summary |
-| `/api/history` | Phase 5 | Project-scoped chat, calculation, and audit history |
-| `/api/audit` | Phase 5 | Project-scoped audit log |
+| --- | --- | --- |
+| `/api/chat` | Active | Engineering assistant route with Base.txt, scope guards, provider abstraction, persisted chat sessions/messages, and audit metadata |
+| `/api/calculations` | Active | Catalog of deterministic calculators with database status |
+| `/api/calculations/*` | Active | Deterministic calculation modules with optional calculation-history persistence |
+| `/api/projects` | Active | List and create project records |
+| `/api/dashboard` | Active | Project-scoped live dashboard summary |
+| `/api/history` | Active | Project-scoped chat, calculation, and audit history |
+| `/api/audit` | Active | Project-scoped audit log |
 
 ## Authentication boundary
 
-Phase 5 expects trusted authenticated user context. In development, local headers or the default local user can be used. Phase 6 should replace this bridge with a mature auth provider.
+The API expects trusted authenticated user context. In development, local headers or the default local user can be used. Production deployments should replace this bridge with a mature authentication provider and only enable trusted headers behind a secure gateway.
 
 ## Database boundary
 
-Set `DATABASE_URL` and run the Prisma migration before using Phase 5 in production.
+Set `DATABASE_URL` and run the Prisma migration before using database-backed routes in production.

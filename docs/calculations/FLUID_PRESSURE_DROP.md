@@ -2,7 +2,7 @@
 
 ## Purpose
 
-This module provides a preliminary deterministic calculation for internal pipe flow. It supports traceable engineering output for Phase 4 and avoids embedding engineering math directly inside React components.
+This module provides a preliminary deterministic calculation for internal pipe flow. It supports traceable engineering output and avoids embedding engineering math directly inside React components.
 
 ## Location
 

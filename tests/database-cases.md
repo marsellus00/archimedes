@@ -1,11 +1,11 @@
-# Phase 5 Database Test Cases
+# Database-backed Database Test Cases
 
 ## Database readiness
 
-- `GET /api/chat` returns `phase_5_database_integrated` and database configuration status.
-- `GET /api/calculations` returns `phase_5_calculation_history_ready`.
+- `GET /api/chat` returns `database_integrated` and database configuration status.
+- `GET /api/calculations` returns `calculation_history_ready`.
 - With no `DATABASE_URL` in development, chat and calculations continue without persistence and report a database-not-configured status.
-- With no `DATABASE_URL` in production or `REQUIRE_PHASE5_DATABASE=true`, persisted endpoints fail safely with 503.
+- With no `DATABASE_URL` in production or `REQUIRE_DATABASE=true`, persisted endpoints fail safely with 503.
 
 ## Projects
 

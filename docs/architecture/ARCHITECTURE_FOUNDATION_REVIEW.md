@@ -1,4 +1,4 @@
-# Phase 1 Review Checkpoint
+# Architecture baseline Review Checkpoint
 
 ## Objective
 
@@ -37,8 +37,8 @@ Reviewers should validate:
 1. Whether the architecture layout is acceptable.
 2. Whether the README accurately reflects the intended engineering-only product scope.
 3. Whether `.env.example` covers the expected integration categories.
-4. Whether the next implementation phase should begin with AI instruction enforcement, database schema, authentication, or calculation refactor.
+4. Whether the next implementation step should begin with AI instruction enforcement, database schema, authentication, or calculation refactor.
 
 ## Recommended next step
 
-Proceed to Phase 2 only after approval: convert `Base.txt` into enforceable server-side application logic, including prompt hierarchy, prompt-injection resistance, response metadata contracts, and safety-boundary validation.
+Proceed to Base instruction enforcement only after approval: convert `Base.txt` into enforceable server-side application logic, including prompt hierarchy, prompt-injection resistance, response metadata contracts, and safety-boundary validation.

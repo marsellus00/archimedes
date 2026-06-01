@@ -1,20 +1,20 @@
-# Phase 3 Review Checkpoint — AI API Integration
+# AI provider integration Review Checkpoint — AI API Integration
 
 ## Objective
 
-Attach an AI-provider integration layer to the Phase 2 server-side instruction hierarchy and structured response contract without prematurely implementing database persistence, production authentication, document retrieval, or deterministic calculation tools.
+Attach an AI-provider integration layer to the Base instruction enforcement server-side instruction hierarchy and structured response contract without prematurely implementing database persistence, production authentication, document retrieval, or deterministic calculation tools.
 
 ## Implemented in this checkpoint
 
 - Added `lib/ai/provider.ts` for provider selection and provider abstraction.
 - Added `lib/ai/providers/mockProvider.ts` for deterministic review-safe fallback behavior.
 - Added `lib/ai/providers/openAICompatibleProvider.ts` for OpenAI-compatible chat-completions APIs using server-side `fetch`.
-- Extended `lib/ai/types.ts` with provider metadata, usage metadata, request context, and Phase 3 envelope types.
-- Upgraded `app/api/chat/route.ts` from a Phase 2 contract-preview endpoint to a Phase 3 provider-ready endpoint.
+- Extended `lib/ai/types.ts` with provider metadata, usage metadata, request context, and AI provider integration envelope types.
+- Upgraded `app/api/chat/route.ts` from a Base instruction enforcement contract-preview endpoint to a AI provider integration provider-ready endpoint.
 - Added optional server-sent-events response mode using `stream: true` in the request body.
-- Preserved the Phase 2 engineering scope gate so out-of-scope or ambiguous requests do not need live model calls.
-- Added Phase 3 environment variables to `.env.example`.
-- Added AI provider setup documentation and Phase 3 manual behavior tests.
+- Preserved the Base instruction enforcement engineering scope gate so out-of-scope or ambiguous requests do not need live model calls.
+- Added AI provider integration environment variables to `.env.example`.
+- Added AI provider setup documentation and AI provider integration manual behavior tests.
 
 ## Current route behavior
 
@@ -24,20 +24,20 @@ Attach an AI-provider integration layer to the Phase 2 server-side instruction h
 
 ```json
 {
-  "userMessage": "Calculate whether a 50 mm water pipe at 3 m/s is turbulent.",
-  "projectContext": {
-    "projectId": "demo-project",
-    "discipline": "mechanical"
-  },
-  "documentContexts": [],
-  "stream": false
+ "userMessage": "Calculate whether a 50 mm water pipe at 3 m/s is turbulent.",
+ "projectContext": {
+ "projectId": "demo-project",
+ "discipline": "mechanical"
+ },
+ "documentContexts": [],
+ "stream": false
 }
 ```
 
 The route then:
 
 1. Parses the request.
-2. Builds a Phase 3 request context.
+2. Builds a AI provider integration request context.
 3. Classifies engineering scope.
 4. Builds the Base.txt instruction hierarchy.
 5. Short-circuits out-of-scope or ambiguous requests safely.
@@ -75,11 +75,11 @@ This checkpoint intentionally does **not** implement:
 
 ## Development authentication context
 
-Production authentication belongs to a later phase. For local route review, the route records whether an `x-engineering-user-id` header is present. Set `REQUIRE_PHASE3_AUTH_CONTEXT=true` to require that header during Phase 3 review.
+Production authentication belongs to a future roadmap item. For local route review, the route records whether an `x-engineering-user-id` header is present. Set `REQUIRE_AUTH_CONTEXT=true` to require that header during AI provider integration review.
 
 ## Reviewer checks
 
-1. Confirm `AI_PROVIDER=mock` returns a deterministic Phase 3 envelope without credentials.
+1. Confirm `AI_PROVIDER=mock` returns a deterministic AI provider integration envelope without credentials.
 2. Confirm out-of-scope requests are refused before live AI generation.
 3. Confirm ambiguous requests ask for engineering context before live AI generation.
 4. Confirm `EXPOSE_INSTRUCTION_HIERARCHY_PREVIEW=false` hides prompt content.
@@ -89,4 +89,4 @@ Production authentication belongs to a later phase. For local route review, the 
 
 ## Recommended next step
 
-Proceed to Phase 4 after review: integrate deterministic calculation modules and tool-calling boundaries so the AI explains calculations while trusted calculation code computes them.
+Proceed to Active after review: integrate deterministic calculation modules and tool-calling boundaries so the AI explains calculations while trusted calculation code computes them.

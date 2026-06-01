@@ -2,7 +2,7 @@
 
 ## Review-safe default
 
-No credentials are required for the default Phase 3 review mode:
+No credentials are required for the default AI provider integration review mode:
 
 ```env
 AI_PROVIDER="mock"
@@ -30,10 +30,10 @@ For Azure, proxy, or enterprise-compatible gateways, set `AI_BASE_URL` to the ga
 
 ## Development auth context
 
-Production authentication is not implemented in Phase 3. To require a simulated user context while reviewing the route:
+Production authentication is not implemented in AI provider integration. To require a simulated user context while reviewing the route:
 
 ```env
-REQUIRE_PHASE3_AUTH_CONTEXT="true"
+REQUIRE_AUTH_CONTEXT="true"
 ```
 
 Then send this header:
@@ -46,21 +46,21 @@ x-engineering-user-id: dev-reviewer-1
 
 ```bash
 curl -X POST http://localhost:3000/api/chat \
-  -H 'Content-Type: application/json' \
-  -H 'x-engineering-user-id: dev-reviewer-1' \
-  -d '{
-    "userMessage":"Calculate if a 50 mm water pipe at 3 m/s is turbulent.",
-    "projectContext":{"projectId":"demo","discipline":"mechanical"}
-  }'
+ -H 'Content-Type: application/json' \
+ -H 'x-engineering-user-id: dev-reviewer-1' \
+ -d '{
+ "userMessage":"Calculate if a 50 mm water pipe at 3 m/s is turbulent.",
+ "projectContext":{"projectId":"demo","discipline":"mechanical"}
+ }'
 ```
 
 ## Example streaming request
 
 ```bash
 curl -N -X POST http://localhost:3000/api/chat \
-  -H 'Content-Type: application/json' \
-  -d '{
-    "userMessage":"Prepare a pump troubleshooting checklist for high vibration.",
-    "stream":true
-  }'
+ -H 'Content-Type: application/json' \
+ -d '{
+ "userMessage":"Prepare a pump troubleshooting checklist for high vibration.",
+ "stream":true
+ }'
 ```

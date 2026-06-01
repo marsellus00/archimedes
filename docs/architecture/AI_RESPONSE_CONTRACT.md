@@ -6,18 +6,18 @@ The Engineering GPT assistant should return both user-facing answer text and str
 
 ```ts
 type EngineeringAIResponse = {
-  answer: string;
-  scopeStatus: "engineering" | "out_of_scope" | "needs_clarification";
-  assumptions: string[];
-  missingData: string[];
-  safetyWarnings: string[];
-  standardsReferenced: string[];
-  requiresProfessionalReview: boolean;
-  confidenceLevel:
-    | "rough_estimate"
-    | "preliminary"
-    | "detailed"
-    | "not_applicable";
+ answer: string;
+ scopeStatus: "engineering" | "out_of_scope" | "needs_clarification";
+ assumptions: string[];
+ missingData: string[];
+ safetyWarnings: string[];
+ standardsReferenced: string[];
+ requiresProfessionalReview: boolean;
+ confidenceLevel:
+ | "rough_estimate"
+ | "preliminary"
+ | "detailed"
+ | "not_applicable";
 };
 ```
 
@@ -32,6 +32,6 @@ type EngineeringAIResponse = {
 - `requiresProfessionalReview` must be true for safety-critical, regulated, final, construction-ready, or standards/code-sensitive work.
 - `confidenceLevel` must clearly distinguish rough estimates, preliminary support, detailed calculations, and non-applicable cases.
 
-## Phase 2 limitation
+## Response contract limitation
 
-This contract is ready for AI-provider integration, but Phase 2 does not call a model. The Phase 2 chat route returns a deterministic contract preview only.
+This contract is ready for AI-provider integration, but Base instruction enforcement does not call a model. The Base instruction enforcement chat route returns a deterministic contract preview only.
