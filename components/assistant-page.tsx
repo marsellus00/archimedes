@@ -491,14 +491,9 @@ export function AssistantPage() {
  {providerLabel}
  </span>
  </div>
- <p className="mt-1 max-w-4xl text-sm text-slate-400">
- Free engineering chat connected to /api/chat. Ask engineering concept questions without selecting a project,
- or use it for calculations support, troubleshooting, standards questions, safety reviews, and technical documentation drafts.
- </p>
  </div>
 
  <div className="flex flex-wrap gap-2">
-
 
  <button
  type="button"
@@ -529,7 +524,7 @@ export function AssistantPage() {
 
  <div className="flex min-h-0 flex-1">
  <main className="flex min-w-0 flex-1 flex-col">
- <section className="min-h-0 flex-1 overflow-y-auto px-4 py-5 sm:px-6 lg:px-8">
+ <section className="hide-scrollbar min-h-0 flex-1 overflow-y-auto px-4 py-5 sm:px-6 lg:px-8">
  {messages.length === 0 ? (
  <div className="mx-auto flex min-h-full max-w-6xl flex-col justify-center py-8">
  <div className="max-w-3xl">
@@ -609,22 +604,23 @@ export function AssistantPage() {
  </div>
 
  <div className="mt-3 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
- <div className="flex flex-wrap gap-2">
+ <div className="assistant-action-bar flex min-w-0 flex-1 flex-nowrap gap-2">
  {secondaryActions.map(({ label, icon: Icon, note }) => (
  <button
  key={label}
  type="button"
+ aria-label={label}
  onClick={() => setToolNotice(`${label} is reserved for ${note}. Chat is active now.`)}
- className="inline-flex items-center gap-2 border border-slate-700/40 bg-[#181c22] px-3 py-2 text-xs text-slate-400 transition hover:border-sky-300/30 hover:text-sky-200"
- title={note}
+ className="assistant-action-button inline-flex shrink-0 items-center justify-center gap-2 border border-slate-700/40 bg-[#181c22] px-3 py-2 text-xs text-slate-400 transition hover:border-sky-300/30 hover:text-sky-200"
+ title={`${label}: ${note}`}
  >
- <Icon className="h-4 w-4" />
- {label}
+ <Icon className="h-4 w-4 shrink-0" />
+ <span className="assistant-action-label whitespace-nowrap">{label}</span>
  </button>
  ))}
  </div>
 
- <div className="flex items-center justify-between gap-3 lg:justify-end">
+ <div className="flex shrink-0 items-center justify-between gap-3 lg:justify-end">
  <div className="font-mono text-[10px] uppercase tracking-widest text-slate-500">
  Enter sends · Shift + Enter adds a line
  </div>

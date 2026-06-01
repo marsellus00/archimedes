@@ -37,3 +37,18 @@ textarea {
 .hide-scrollbar::-webkit-scrollbar {
  display: none;
 }
+.assistant-action-bar {
+ container-type: inline-size;
+}
+
+@container (max-width: 600px) {
+ .assistant-action-label {
+  display: none;
+ }
+
+ .assistant-action-button {
+  min-width: 2.75rem;
+  padding-left: 0.75rem;
+  padding-right: 0.75rem;
+ }
+}

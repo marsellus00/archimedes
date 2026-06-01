@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { Menu } from "lucide-react";
 import { RightRail } from "@/components/right-rail";
 import { Sidebar } from "@/components/sidebar";
 import { Topbar } from "@/components/topbar";
@@ -9,6 +10,7 @@ type AppShellProps = {
  title: string;
  children: React.ReactNode;
  showRightRail?: boolean;
+ showTopbar?: boolean;
  showTopbarActions?: boolean;
 };
 
@@ -16,6 +18,7 @@ export function AppShell({
  title,
  children,
  showRightRail = true,
+ showTopbar = true,
  showTopbarActions = true,
 }: AppShellProps) {
  const [mobileOpen, setMobileOpen] = useState(false);
@@ -35,11 +38,23 @@ export function AppShell({
  }
  >
  <div className="min-w-0">
+ {showTopbar ? (
  <Topbar
  title={title}
  setMobileOpen={setMobileOpen}
  showActions={showTopbarActions}
  />
+ ) : (
+ <button
+ type="button"
+ className="fixed left-4 top-4 z-40 border border-sky-300/30 bg-[#0d1117]/90 p-2 text-sky-300 backdrop-blur-xl transition hover:bg-sky-300/10 lg:hidden"
+ onClick={() => setMobileOpen(true)}
+ aria-label="Open navigation"
+ >
+ <Menu className="h-4 w-4" />
+ <span className="sr-only">Open navigation</span>
+ </button>
+ )}
  <div className="relative">{children}</div>
  </div>
 

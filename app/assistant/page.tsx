@@ -3,7 +3,12 @@ import { AssistantPage } from "@/components/assistant-page";
 
 export default function AssistantRoute() {
  return (
- <AppShell title="AI Assistant" showRightRail={false} showTopbarActions={false}>
+ <AppShell
+ title="AI Assistant"
+ showRightRail={false}
+ showTopbar={false}
+ showTopbarActions={false}
+ >
  <AssistantPage />
  </AppShell>
  );
