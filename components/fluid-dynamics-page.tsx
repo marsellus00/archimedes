@@ -46,9 +46,18 @@ function Input({ label, value, setValue, unit, step = 0.1, min = 0, icon: Icon }
           type="number"
           min={min}
           step={step}
-          value={value}
+          value={String(value)}
           onFocus={(event) => event.currentTarget.select()}
-          onChange={(event) => setValue(Number(event.target.value))}
+          onChange={(event) => {
+            let value = parseInt(event.target.value, 10)
+            if( value > 0){
+              console.log(value)
+              setValue(Number(value))
+            }
+            else {
+              setValue(0)
+            }
+          }}
           className="w-full bg-transparent text-lg font-semibold text-slate-100 outline-none"
         />
         <span className="ml-3 whitespace-nowrap text-sm font-medium text-cyan-300">
