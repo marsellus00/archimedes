@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Menu } from "lucide-react";
 import { RightRail } from "@/components/right-rail";
 import { Sidebar } from "@/components/sidebar";
@@ -14,21 +14,46 @@ type AppShellProps = {
  showTopbarActions?: boolean;
 };
 
+const SIDEBAR_COLLAPSED_KEY = "engineering-gpt.sidebar-collapsed.v2";
+
 export function AppShell({
  title,
  children,
- showRightRail = true,
+ showRightRail = false,
  showTopbar = true,
  showTopbarActions = true,
 }: AppShellProps) {
  const [mobileOpen, setMobileOpen] = useState(false);
+ const [sidebarCollapsed, setSidebarCollapsed] = useState(true);
+
+ useEffect(() => {
+ if (typeof window === "undefined") return;
+ const storedSidebarState = window.localStorage.getItem(SIDEBAR_COLLAPSED_KEY);
+ setSidebarCollapsed(storedSidebarState === null ? true : storedSidebarState === "true");
+ }, []);
+
+ function updateSidebarCollapsed(collapsed: boolean) {
+ setSidebarCollapsed(collapsed);
+ if (typeof window !== "undefined") {
+ window.localStorage.setItem(SIDEBAR_COLLAPSED_KEY, String(collapsed));
+ }
+ }
 
  return (
- <div className="min-h-screen bg-[#080c12] text-slate-200 lg:pl-64">
+ <div
+ className={`min-h-screen bg-[#080c12] text-slate-200 transition-[padding] duration-200 ${
+ sidebarCollapsed ? "lg:pl-16" : "lg:pl-64"
+ }`}
+ >
  <div className="pointer-events-none fixed inset-0 z-0 bg-[linear-gradient(rgba(159,202,255,0.05)_1px,transparent_1px),linear-gradient(90deg,rgba(159,202,255,0.05)_1px,transparent_1px)] bg-[size:32px_32px]" />
  <div className="pointer-events-none fixed inset-0 z-0 bg-[radial-gradient(circle_at_center,rgba(159,202,255,0.04)_0%,transparent_70%)]" />
 
- <Sidebar mobileOpen={mobileOpen} setMobileOpen={setMobileOpen} />
+ <Sidebar
+ mobileOpen={mobileOpen}
+ setMobileOpen={setMobileOpen}
+ collapsed={sidebarCollapsed}
+ setCollapsed={updateSidebarCollapsed}
+ />
 
  <div
  className={

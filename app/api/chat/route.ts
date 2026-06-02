@@ -376,7 +376,7 @@ function buildEngineeringRequestContext(
 
 function streamEnvelope(envelope: EngineeringAIResponseEnvelope): Response {
  const encoder = new TextEncoder();
- const chunks = chunkText(envelope.response.answer, 96);
+ const chunks = chunkText(envelope.response.answer, 36);
 
  const stream = new ReadableStream({
  start(controller) {

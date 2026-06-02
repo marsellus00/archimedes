@@ -82,6 +82,7 @@ type ChatMessage = {
  content: string;
  envelope?: ChatEnvelope;
  createdAt: string;
+ isStreaming?: boolean;
 };
 
 type PersistedChatMessage = {
@@ -126,13 +127,9 @@ const secondaryActions = [
  { label: "Voice", icon: Mic, note: "Later enhancement" },
 ];
 
-const ASSISTANT_REVIEW_HEADERS = {
- "Content-Type": "application/json",
- "x-engineering-user-id": "assistant-page-local-user",
- "x-engineering-user-email": "assistant-page-local-user@engineering.local",
- "x-engineering-user-name": "Assistant Page Local User",
-};
-
+const ASSISTANT_GUEST_USER_ID_KEY = "engineering-gpt.guest-user-id";
+const ASSISTANT_GUEST_USER_EMAIL_KEY = "engineering-gpt.guest-user-email";
+const ASSISTANT_GUEST_USER_NAME_KEY = "engineering-gpt.guest-user-name";
 const ACTIVE_FREE_CHAT_SESSION_KEY = "engineering-gpt.active-free-chat-session-id";
 const CHAT_HISTORY_COLLAPSED_KEY = "engineering-gpt.chat-history-panel-collapsed";
 
@@ -142,6 +139,87 @@ function createId() {
  }
 
  return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+}
+
+type AssistantGuestIdentity = {
+ id: string;
+ email: string;
+ name: string;
+};
+
+function getOrCreateAssistantGuestIdentity(): AssistantGuestIdentity | null {
+ if (typeof window === "undefined") return null;
+
+ let id = window.localStorage.getItem(ASSISTANT_GUEST_USER_ID_KEY);
+ if (!id) {
+ id = `guest-${createId()}`;
+ window.localStorage.setItem(ASSISTANT_GUEST_USER_ID_KEY, id);
+ }
+
+ const emailSafeId = id.replace(/[^a-zA-Z0-9-]/g, "-").toLowerCase();
+ let email = window.localStorage.getItem(ASSISTANT_GUEST_USER_EMAIL_KEY);
+ if (!email) {
+ email = `${emailSafeId}@engineering.local`;
+ window.localStorage.setItem(ASSISTANT_GUEST_USER_EMAIL_KEY, email);
+ }
+
+ let name = window.localStorage.getItem(ASSISTANT_GUEST_USER_NAME_KEY);
+ if (!name) {
+ name = "Engineering Workspace User";
+ window.localStorage.setItem(ASSISTANT_GUEST_USER_NAME_KEY, name);
+ }
+
+ return { id, email, name };
+}
+
+function getAssistantRequestHeaders(includeJsonContentType = false): Record<string, string> {
+ const headers: Record<string, string> = includeJsonContentType
+ ? { "Content-Type": "application/json" }
+ : {};
+ const identity = getOrCreateAssistantGuestIdentity();
+
+ if (identity) {
+ headers["x-engineering-user-id"] = identity.id;
+ headers["x-engineering-user-email"] = identity.email;
+ headers["x-engineering-user-name"] = identity.name;
+ }
+
+ return headers;
+}
+
+function getScopedActiveSessionKey() {
+ const identity = getOrCreateAssistantGuestIdentity();
+ return identity ? `${ACTIVE_FREE_CHAT_SESSION_KEY}.${identity.id}` : ACTIVE_FREE_CHAT_SESSION_KEY;
+}
+
+function appendStreamChunk(currentContent: string, chunk: string) {
+ if (!chunk) return currentContent;
+ if (!currentContent) return chunk;
+ if (currentContent.endsWith("\n") || /^[.,;:!?)]/.test(chunk)) return `${currentContent}${chunk}`;
+ return `${currentContent} ${chunk}`;
+}
+
+function wait(milliseconds: number) {
+ return new Promise((resolve) => window.setTimeout(resolve, milliseconds));
+}
+
+function parseServerSentEvent(block: string): { eventName: string; data: string } | null {
+ const lines = block.split(/\r?\n/);
+ let eventName = "message";
+ const dataLines: string[] = [];
+
+ for (const line of lines) {
+ if (line.startsWith("event:")) {
+ eventName = line.slice("event:".length).trim();
+ }
+
+ if (line.startsWith("data:")) {
+ dataLines.push(line.slice("data:".length).trimStart());
+ }
+ }
+
+ if (!dataLines.length) return null;
+ return { eventName, data: dataLines.join("\n") };
 }
 
 function toStringDate(value: string | Date | undefined) {
@@ -269,7 +347,7 @@ export function AssistantPage() {
  const textarea = textareaRef.current;
  if (!textarea) return;
  textarea.style.height = "auto";
- textarea.style.height = `${Math.min(textarea.scrollHeight, 260)}px`;
+ textarea.style.height = `${Math.min(Math.max(textarea.scrollHeight, 52), 180)}px`;
  });
  }
 
@@ -278,7 +356,7 @@ export function AssistantPage() {
  requestAnimationFrame(() => {
  const textarea = textareaRef.current;
  if (!textarea) return;
- textarea.style.height = "132px";
+ textarea.style.height = "52px";
  });
  }
 
@@ -289,7 +367,7 @@ export function AssistantPage() {
  try {
  const response = await fetch("/api/history", {
  method: "GET",
- headers: ASSISTANT_REVIEW_HEADERS,
+ headers: getAssistantRequestHeaders(),
  });
  const data = (await response.json()) as HistoryEnvelope;
 
@@ -303,7 +381,7 @@ export function AssistantPage() {
  if (options?.restoreActiveSession && !hasRestoredInitialSession) {
  const storedSessionId =
  typeof window !== "undefined"
- ? window.localStorage.getItem(ACTIVE_FREE_CHAT_SESSION_KEY)
+ ? window.localStorage.getItem(getScopedActiveSessionKey())
  : null;
  const sessionToRestore =
  sessions.find((session) => session.id === storedSessionId) ?? sessions[0];
@@ -333,7 +411,7 @@ export function AssistantPage() {
  try {
  const response = await fetch(`/api/history?sessionId=${encodeURIComponent(sessionId)}`, {
  method: "GET",
- headers: ASSISTANT_REVIEW_HEADERS,
+ headers: getAssistantRequestHeaders(),
  });
  const data = (await response.json()) as HistoryEnvelope;
 
@@ -344,7 +422,7 @@ export function AssistantPage() {
  setMessages(restoreMessagesFromSession(data.session));
  setActiveSessionId(data.session.id);
  if (typeof window !== "undefined") {
- window.localStorage.setItem(ACTIVE_FREE_CHAT_SESSION_KEY, data.session.id);
+ window.localStorage.setItem(getScopedActiveSessionKey(), data.session.id);
  }
 
  if (!options?.silentHistoryRefresh) {
@@ -365,8 +443,19 @@ export function AssistantPage() {
  content: userMessage,
  createdAt: new Date().toISOString(),
  };
+ const assistantEntryId = createId();
 
- setMessages((current) => [...current, userEntry]);
+ setMessages((current) => [
+ ...current,
+ userEntry,
+ {
+ id: assistantEntryId,
+ role: "assistant",
+ content: "",
+ createdAt: new Date().toISOString(),
+ isStreaming: true,
+ },
+ ]);
  resetComposer();
  setError(null);
  setToolNotice(null);
@@ -375,56 +464,145 @@ export function AssistantPage() {
  try {
  const response = await fetch("/api/chat", {
  method: "POST",
- headers: ASSISTANT_REVIEW_HEADERS,
+ headers: getAssistantRequestHeaders(true),
  body: JSON.stringify({
  userMessage,
  chatMode: "free_chat",
  sessionId: activeSessionId ?? undefined,
+ stream: true,
  }),
  });
 
- const data = (await response.json()) as ChatEnvelope & { error?: string };
-
- if (!response.ok || data.error) {
- throw new Error(data.error ?? "The chat request failed.");
+ if (!response.ok || !response.body) {
+ const errorPayload = (await response.json().catch(() => null)) as
+ | { error?: string; message?: string }
+ | null;
+ throw new Error(errorPayload?.error ?? errorPayload?.message ?? "The chat request failed.");
  }
 
- if (data.requestContext?.chatSessionId) {
- setActiveSessionId(data.requestContext.chatSessionId);
+ const reader = response.body.getReader();
+ const decoder = new TextDecoder();
+ let buffer = "";
+ let finalEnvelope: ChatEnvelope | null = null;
+ let displayedAssistantText = "";
+ let pendingAssistantText = "";
+ let isAnimatingAssistantText = false;
+
+ const updateStreamingAssistantText = (content: string) => {
+ setMessages((current) =>
+ current.map((message) =>
+ message.id === assistantEntryId
+ ? { ...message, content, isStreaming: true }
+ : message,
+ ),
+ );
+ };
+
+ const revealQueuedAssistantText = async () => {
+ if (isAnimatingAssistantText) return;
+ isAnimatingAssistantText = true;
+
+ while (pendingAssistantText.length > 0) {
+ const nextCharacter = pendingAssistantText[0];
+ pendingAssistantText = pendingAssistantText.slice(1);
+ displayedAssistantText += nextCharacter;
+ updateStreamingAssistantText(displayedAssistantText);
+ await wait(nextCharacter === "\n" ? 18 : 8);
+ }
+
+ isAnimatingAssistantText = false;
+ };
+
+ const queueAssistantText = (chunk: string) => {
+ if (!chunk) return;
+ const currentFullText = displayedAssistantText + pendingAssistantText;
+ const nextFullText = appendStreamChunk(currentFullText, chunk);
+ pendingAssistantText += nextFullText.slice(currentFullText.length);
+ void revealQueuedAssistantText();
+ };
+
+ const waitForAssistantTextToFinish = async () => {
+ while (isAnimatingAssistantText || pendingAssistantText.length > 0) {
+ if (!isAnimatingAssistantText && pendingAssistantText.length > 0) {
+ void revealQueuedAssistantText();
+ }
+ await wait(20);
+ }
+ };
+
+ while (true) {
+ const { done, value } = await reader.read();
+ if (done) break;
+
+ buffer += decoder.decode(value, { stream: true });
+ const eventBlocks = buffer.split("\n\n");
+ buffer = eventBlocks.pop() ?? "";
+
+ for (const eventBlock of eventBlocks) {
+ const parsedEvent = parseServerSentEvent(eventBlock);
+ if (!parsedEvent) continue;
+
+ if (parsedEvent.eventName === "token") {
+ const payload = JSON.parse(parsedEvent.data) as { chunk?: string };
+ queueAssistantText(payload.chunk ?? "");
+ }
+
+ if (parsedEvent.eventName === "final") {
+ finalEnvelope = JSON.parse(parsedEvent.data) as ChatEnvelope;
+ }
+ }
+ }
+
+ if (!finalEnvelope) {
+ throw new Error("The chat stream ended before final response metadata was returned.");
+ }
+
+ const completedEnvelope = finalEnvelope;
+ const visibleQueuedText = displayedAssistantText + pendingAssistantText;
+ if (completedEnvelope.response.answer.startsWith(visibleQueuedText)) {
+ pendingAssistantText += completedEnvelope.response.answer.slice(visibleQueuedText.length);
+ void revealQueuedAssistantText();
+ }
+ await waitForAssistantTextToFinish();
+
+ if (completedEnvelope.requestContext?.chatSessionId) {
+ setActiveSessionId(completedEnvelope.requestContext.chatSessionId);
  if (typeof window !== "undefined") {
  window.localStorage.setItem(
- ACTIVE_FREE_CHAT_SESSION_KEY,
- data.requestContext.chatSessionId,
+ getScopedActiveSessionKey(),
+ completedEnvelope.requestContext.chatSessionId,
  );
  }
  }
 
- setMessages((current) => [
- ...current,
- {
- id: createId(),
- role: "assistant",
- content: data.response.answer,
- envelope: data,
- createdAt: new Date().toISOString(),
- },
- ]);
+ setMessages((current) =>
+ current.map((message) =>
+ message.id === assistantEntryId
+ ? {
+ ...message,
+ content: completedEnvelope.response.answer,
+ envelope: completedEnvelope,
+ isStreaming: false,
+ }
+ : message,
+ ),
+ );
 
  void loadChatHistory({ restoreActiveSession: false });
  } catch (caughtError) {
  const message = caughtError instanceof Error ? caughtError.message : "Unknown chat error.";
+ const fallbackAnswer =
+ "I could not complete that chat request. Check the AI provider configuration and try again.";
  setError(message);
- setMessages((current) => [
- ...current,
- {
- id: createId(),
- role: "assistant",
- content:
- "I could not complete that chat request. Check the AI provider configuration and try again.",
+ setMessages((current) =>
+ current.map((chatMessage) =>
+ chatMessage.id === assistantEntryId
+ ? {
+ ...chatMessage,
+ content: fallbackAnswer,
  envelope: {
  response: {
- answer:
- "I could not complete that chat request. Check the AI provider configuration and try again.",
+ answer: fallbackAnswer,
  scopeStatus: "needs_clarification",
  assumptions: [],
  missingData: [message],
@@ -435,9 +613,11 @@ export function AssistantPage() {
  },
  warnings: [message],
  },
- createdAt: new Date().toISOString(),
- },
- ]);
+ isStreaming: false,
+ }
+ : chatMessage,
+ ),
+ );
  } finally {
  setIsSending(false);
  textareaRef.current?.focus();
@@ -464,7 +644,7 @@ export function AssistantPage() {
  setMessages([]);
  setActiveSessionId(null);
  if (typeof window !== "undefined") {
- window.localStorage.removeItem(ACTIVE_FREE_CHAT_SESSION_KEY);
+ window.localStorage.removeItem(getScopedActiveSessionKey());
  }
  setError(null);
  setToolNotice(null);
@@ -473,8 +653,8 @@ export function AssistantPage() {
  }
 
  return (
- <div className="flex h-[calc(100vh-3rem)] min-h-0 flex-col overflow-hidden bg-transparent text-slate-200">
- <header className="shrink-0 border-b border-slate-700/30 bg-[#0d1117]/70 px-4 py-3 backdrop-blur sm:px-6 lg:px-8">
+ <div className="flex h-screen min-h-0 flex-col overflow-hidden bg-transparent text-slate-200">
+ <header className="shrink-0 border-b border-slate-700/30 bg-[#0d1117]/70 px-4 py-2.5 backdrop-blur sm:px-6 lg:px-8">
  <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
  <div>
  <div className="flex flex-wrap items-center gap-3 text-xs uppercase tracking-tight">
@@ -524,19 +704,18 @@ export function AssistantPage() {
 
  <div className="flex min-h-0 flex-1">
  <main className="flex min-w-0 flex-1 flex-col">
- <section className="hide-scrollbar min-h-0 flex-1 overflow-y-auto px-4 py-5 sm:px-6 lg:px-8">
+ <section className="hide-scrollbar min-h-0 flex-1 overflow-y-auto px-4 py-4 sm:px-6 lg:px-8">
  {messages.length === 0 ? (
  <div className="mx-auto flex min-h-full max-w-6xl flex-col justify-center py-8">
  <div className="max-w-3xl">
  <div className="mb-4 inline-flex rounded-full border border-sky-300/20 bg-sky-300/5 px-4 py-2 font-mono text-[10px] uppercase tracking-widest text-sky-300">
- Free engineering chat ready · Project not required
+ Engineering assistant ready
  </div>
  <h2 className="text-2xl font-semibold text-slate-100 sm:text-3xl">
  Start a technical engineering conversation
  </h2>
  <p className="mt-3 text-sm leading-6 text-slate-400">
- Ask a direct engineering question, paste rough data, or request a documentation draft.
- This creates a free ChatSession under your user identity; project access is required only when a real project is selected later.
+ Ask an engineering question, paste rough data, or request a calculation, review, troubleshooting plan, or documentation draft.
  </p>
  </div>
 
@@ -559,13 +738,12 @@ export function AssistantPage() {
  {messages.map((message) => (
  <ChatMessageCard key={message.id} message={message} />
  ))}
- {isSending ? <LoadingMessage /> : null}
  <div ref={scrollRef} />
  </div>
  )}
  </section>
 
- <section className="shrink-0 border-t border-slate-700/30 bg-[#10141a]/98 px-4 py-4 shadow-[0_-18px_50px_rgba(0,0,0,0.32)] backdrop-blur sm:px-6 lg:px-8">
+ <section className="shrink-0 border-t border-slate-700/30 bg-[#10141a]/95 px-4 py-3 shadow-[0_-18px_50px_rgba(0,0,0,0.32)] backdrop-blur sm:px-6 lg:px-8">
  <form
  className="mx-auto max-w-6xl"
  onSubmit={(event: FormEvent<HTMLFormElement>) => {
@@ -587,7 +765,7 @@ export function AssistantPage() {
  </div>
  ) : null}
 
- <div className="border border-slate-700/50 bg-[#0a0e14] transition focus-within:border-sky-300 focus-within:ring-1 focus-within:ring-sky-300/40">
+ <div className="rounded-2xl border border-slate-700/50 bg-[#0a0e14] transition focus-within:border-sky-300 focus-within:ring-1 focus-within:ring-sky-300/40">
  <label htmlFor="engineering-chat-input" className="sr-only">
  Engineering chat message
  </label>
@@ -597,13 +775,13 @@ export function AssistantPage() {
  value={input}
  onChange={(event: ChangeEvent<HTMLTextAreaElement>) => resizeComposer(event.target.value)}
  onKeyDown={handleKeyDown}
- rows={6}
+ rows={1}
  placeholder="Describe the engineering problem, calculation, equipment issue, standard/code question, or documentation task..."
- className="h-[132px] max-h-[260px] min-h-[132px] w-full resize-none border-0 bg-transparent p-4 text-sm leading-6 text-slate-100 outline-none placeholder:text-slate-600"
+ className="h-[52px] max-h-[180px] min-h-[52px] w-full resize-none border-0 bg-transparent px-4 py-3 text-sm leading-6 text-slate-100 outline-none placeholder:text-slate-600"
  />
  </div>
 
- <div className="mt-3 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+ <div className="mt-2 flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between">
  <div className="assistant-action-bar flex min-w-0 flex-1 flex-nowrap gap-2">
  {secondaryActions.map(({ label, icon: Icon, note }) => (
  <button
@@ -611,7 +789,7 @@ export function AssistantPage() {
  type="button"
  aria-label={label}
  onClick={() => setToolNotice(`${label} is reserved for ${note}. Chat is active now.`)}
- className="assistant-action-button inline-flex shrink-0 items-center justify-center gap-2 border border-slate-700/40 bg-[#181c22] px-3 py-2 text-xs text-slate-400 transition hover:border-sky-300/30 hover:text-sky-200"
+ className="assistant-action-button inline-flex h-9 shrink-0 items-center justify-center gap-2 rounded-xl border border-slate-700/40 bg-[#181c22] px-3 text-xs text-slate-400 transition hover:border-sky-300/30 hover:text-sky-200"
  title={`${label}: ${note}`}
  >
  <Icon className="h-4 w-4 shrink-0" />
@@ -627,9 +805,9 @@ export function AssistantPage() {
  <button
  type="submit"
  disabled={!input.trim() || isSending}
- className="inline-flex min-w-36 items-center justify-center gap-2 bg-sky-300 px-5 py-3 text-xs font-bold uppercase tracking-widest text-[#003259] transition hover:bg-sky-400 disabled:cursor-not-allowed disabled:bg-slate-700 disabled:text-slate-500"
+ className="inline-flex h-10 min-w-10 items-center justify-center gap-2 rounded-xl bg-sky-300 px-4 text-xs font-bold uppercase tracking-widest text-[#003259] transition hover:bg-sky-400 disabled:cursor-not-allowed disabled:bg-slate-700 disabled:text-slate-500 sm:min-w-36 sm:px-5"
  >
- {isSending ? "Sending" : "Send message"}
+ <span className="hidden sm:inline">{isSending ? "Sending" : "Send message"}</span>
  <Send className="h-4 w-4" />
  </button>
  </div>
@@ -691,6 +869,10 @@ export function AssistantPage() {
  );
 }
 
+function formatChatModeLabel(value: string) {
+ return value.toLowerCase() === "free_chat" ? "general chat" : value.replaceAll("_", " ").toLowerCase();
+}
+
 function formatSessionDate(value: string) {
  try {
  return new Date(value).toLocaleString(undefined, {
@@ -737,7 +919,7 @@ function ChatHistoryPanel({
  <Clock3 className="h-3.5 w-3.5" />
  Chat history
  </div>
- <p className="mt-1 text-xs text-slate-500">Recent free engineering chats</p>
+ <p className="mt-1 text-xs text-slate-500">Your engineering chats</p>
  </div>
 
  {onClose ? (
@@ -783,7 +965,7 @@ function ChatHistoryPanel({
 
  {!isLoadingHistory && !historyError && chatHistory.length === 0 ? (
  <div className="border border-slate-700/30 bg-[#10141a] p-4 text-xs leading-5 text-slate-500">
- No saved free chats yet. Your first completed chat will appear here.
+ No saved chats yet. Your first completed chat will appear here.
  </div>
  ) : null}
 
@@ -807,7 +989,7 @@ function ChatHistoryPanel({
  {session.title}
  </div>
  <div className="mt-2 flex items-center justify-between gap-2 font-mono text-[10px] uppercase tracking-widest text-slate-500">
- <span>{session.mode.replaceAll("_", " ")}</span>
+ <span>{formatChatModeLabel(session.mode)}</span>
  <span>{formatSessionDate(session.updatedAt)}</span>
  </div>
  </button>
@@ -885,7 +1067,7 @@ function ChatMessageCard({ message }: { message: ChatMessage }) {
  ) : null}
  {message.envelope?.requestContext?.chatMode ? (
  <div className="border border-sky-300/20 bg-sky-300/5 px-2 py-1 font-mono text-[10px] uppercase tracking-widest text-sky-300">
- {message.envelope.requestContext.chatMode.replaceAll("_", " ")}
+ {formatChatModeLabel(message.envelope.requestContext.chatMode)}
  </div>
  ) : null}
  {message.envelope?.requestContext?.persistenceStatus ? (
@@ -897,10 +1079,25 @@ function ChatMessageCard({ message }: { message: ChatMessage }) {
  </div>
  </div>
 
- <div className="whitespace-pre-wrap text-sm leading-7 text-slate-200">{message.content}</div>
+ <div className="whitespace-pre-wrap text-sm leading-7 text-slate-200">
+ {message.content || (message.isStreaming ? "Engineering Assistant is preparing the response" : "")}
+ {message.isStreaming ? <StreamingCursor /> : null}
+ </div>
 
- {response ? <ResponseMetadata response={response} warnings={message.envelope?.warnings} /> : null}
+ {response && !message.isStreaming ? (
+ <ResponseMetadata response={response} warnings={message.envelope?.warnings} />
+ ) : null}
  </article>
+ );
+}
+
+function StreamingCursor() {
+ return (
+ <span className="ml-1 inline-flex items-center gap-1 align-middle" aria-label="Assistant is typing">
+ <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-sky-300 [animation-delay:-0.2s]" />
+ <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-sky-300 [animation-delay:-0.1s]" />
+ <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-sky-300" />
+ </span>
  );
 }
 
@@ -955,14 +1152,17 @@ function ResponseMetadata({
 
 function LoadingMessage() {
  return (
- <article className="max-w-[94%] border border-slate-700/40 bg-[#181c22] p-4">
- <div className="mb-3 flex items-center gap-3 font-mono text-[10px] uppercase tracking-widest text-sky-300">
- <Settings className="h-4 w-4 animate-spin" />
- Engineering Assistant is responding
+ <article className="inline-flex max-w-[94%] items-center gap-3 rounded-2xl border border-slate-700/40 bg-[#181c22] px-4 py-3 shadow-lg shadow-black/10">
+ <Settings className="h-4 w-4 animate-spin text-sky-300" />
+ <div>
+ <div className="font-mono text-[10px] uppercase tracking-widest text-sky-300">
+ Engineering Assistant is generating
  </div>
- <div className="space-y-2">
- <div className="h-3 w-2/3 animate-pulse bg-slate-700/60" />
- <div className="h-3 w-1/2 animate-pulse bg-slate-700/60" />
+ <div className="mt-2 flex items-center gap-1.5" aria-label="Assistant is typing">
+ <span className="h-2 w-2 animate-bounce rounded-full bg-slate-500 [animation-delay:-0.2s]" />
+ <span className="h-2 w-2 animate-bounce rounded-full bg-slate-500 [animation-delay:-0.1s]" />
+ <span className="h-2 w-2 animate-bounce rounded-full bg-slate-500" />
+ </div>
  </div>
  </article>
  );

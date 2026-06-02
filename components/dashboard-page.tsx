@@ -150,9 +150,6 @@ export function DashboardPage() {
  <h1 className="mb-2 max-w-4xl text-5xl font-bold tracking-tight text-slate-100">
  Engineering Intelligence Platform
  </h1>
- <p className="max-w-2xl text-lg leading-8 text-slate-400">
- Engineering workspace for deterministic calculations, live AI chat, documentation, and project traceability. The workspace uses PostgreSQL-backed projects, saved chats, saved calculations, audit logs, and live dashboard data.
- </p>
  {dashboardData?.message ? (
  <p className="mt-3 max-w-2xl rounded-xl border border-amber-300/20 bg-amber-300/5 px-4 py-3 text-sm text-amber-200">
  {dashboardData.message}

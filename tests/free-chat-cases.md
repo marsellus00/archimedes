@@ -7,8 +7,8 @@ Request:
 ```bash
 curl -X POST http://localhost:3000/api/chat \
  -H "Content-Type: application/json" \
- -H "x-engineering-user-id: assistant-page-local-user" \
- -H "x-engineering-user-email: assistant-page-local-user@engineering.local" \
+ -H "x-engineering-user-id: guest-demo-user" \
+ -H "x-engineering-user-email: guest-demo-user@engineering.local" \
  -d '{"userMessage":"What is thermodynamics?","chatMode":"free_chat"}'
 ```
 
@@ -48,8 +48,8 @@ Expected:
 
 ```bash
 curl http://localhost:3000/api/history \
- -H "x-engineering-user-id: assistant-page-local-user" \
- -H "x-engineering-user-email: assistant-page-local-user@engineering.local"
+ -H "x-engineering-user-id: guest-demo-user" \
+ -H "x-engineering-user-email: guest-demo-user@engineering.local"
 ```
 
 Expected:

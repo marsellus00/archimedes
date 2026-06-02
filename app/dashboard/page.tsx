@@ -3,7 +3,7 @@ import { DashboardPage } from "@/components/dashboard-page";
 
 export default function DashboardRoute() {
  return (
- <AppShell title="Dashboard">
+ <AppShell title="Dashboard" showRightRail={false}>
  <DashboardPage />
  </AppShell>
  );
