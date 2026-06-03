@@ -60,12 +60,33 @@ export async function generateEngineeringResponseWithProvider(
  input: EngineeringAIProviderInput,
 ): Promise<EngineeringAIProviderResult> {
  const { provider, selectionWarnings } = getConfiguredAIProvider();
+
+ try {
  const result = await provider.generateEngineeringResponse(input);
 
  return {
  ...result,
  warnings: [...selectionWarnings, ...result.warnings],
  };
+ } catch (error) {
+ const fallbackProvider = createMockEngineeringProvider({ liveEnabled: provider.info.liveEnabled });
+ const fallbackResult = await fallbackProvider.generateEngineeringResponse(input);
+ const errorMessage = summarizeProviderError(error);
+
+ return {
+ ...fallbackResult,
+ provider: {
+ ...fallbackResult.provider,
+ providerName: `${fallbackResult.provider.providerName} after live provider failure`,
+ liveEnabled: provider.info.liveEnabled,
+ },
+ warnings: [
+ ...selectionWarnings,
+ errorMessage,
+ ...fallbackResult.warnings,
+ ],
+ };
+ }
 }
 
 export function buildProviderInfoOverride(
@@ -76,6 +97,29 @@ export function buildProviderInfoOverride(
  ...info,
  ...overrides,
  };
+}
+
+function summarizeProviderError(error: unknown): string {
+ const raw = error instanceof Error ? error.message : String(error);
+ const normalized = raw.toLowerCase();
+
+ if (normalized.includes("rate limit") || normalized.includes("rate_limit")) {
+ return "Live AI provider hit a rate limit, so deterministic fallback answered this request. Retry later or adjust the configured model/quota.";
+ }
+
+ if (normalized.includes("timeout") || normalized.includes("abort")) {
+ return "Live AI provider timed out, so deterministic fallback answered this request. Retry later or increase AI_TIMEOUT_MS.";
+ }
+
+ if (normalized.includes("401") || normalized.includes("unauthorized")) {
+ return "Live AI provider authentication failed, so deterministic fallback answered this request. Check AI_API_KEY.";
+ }
+
+ if (normalized.includes("429")) {
+ return "Live AI provider returned HTTP 429, so deterministic fallback answered this request. Retry later or adjust provider quota/rate limits.";
+ }
+
+ return `Live AI provider failed, so deterministic fallback answered this request: ${raw.slice(0, 180)}`;
 }
 
 function normalizeProviderMode(value?: string) {

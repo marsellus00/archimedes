@@ -108,3 +108,75 @@ Expected:
 - Document context is wrapped as untrusted data.
 - Prompt-injection signal is detected when `EXPOSE_INSTRUCTION_HIERARCHY_PREVIEW=true`; otherwise only hierarchy role/source/length metadata is returned.
 - Response must not approve installation.
+
+## 7. Broad technical term — GNSS
+
+Input:
+
+```json
+{
+ "userMessage": "Explain GNSS"
+}
+```
+
+Expected:
+
+- `scopeStatus`: `engineering`
+- category: `engineering_concept`
+- Does not ask for an area of focus before answering.
+- Explains GNSS generally and lists common engineering applications such as ship tracking, surveying, construction, drones, autonomous systems, or offshore positioning.
+
+## 8. Broad technical term — hydrocarbon
+
+Input:
+
+```json
+{
+ "userMessage": "What is hydrocarbon?"
+}
+```
+
+Expected:
+
+- `scopeStatus`: `engineering`
+- category: `engineering_concept`
+- Does not ask for an area of focus before answering.
+- Explains hydrocarbons generally and mentions common engineering fields such as petroleum, process, combustion, environmental, and safety engineering.
+
+## 9. Broad technical term — Bernoulli
+
+Input:
+
+```json
+{
+ "userMessage": "Who is Bernoulli?"
+}
+```
+
+Expected:
+
+- `scopeStatus`: `engineering`
+- category: `engineering_concept`
+- Interprets the prompt in the engineering-fluid-mechanics sense unless the user clearly asks for a non-engineering biography.
+- Explains Bernoulli's principle/equation at a basic level without requiring extra context.
+
+## Broad engineering-adjacent concept and provider fallback cases
+
+- Prompt: `Was Johann Bernoulli a contemporary of Newton?`
+  - Expected: `scopeStatus=engineering`
+  - Expected classification: `engineering_concept`
+  - Expected behavior: Answer directly that Johann Bernoulli and Isaac Newton were contemporaries because their lifetimes overlapped; do not ask for project context.
+
+- Prompt: `Who was Bernoulli?`
+  - Expected: `scopeStatus=engineering`
+  - Expected classification: `engineering_concept`
+  - Expected behavior: Explain the Bernoulli family / Daniel Bernoulli / engineering relevance to fluid mechanics and applied mathematics before asking for any focus area.
+
+- Live provider failure behavior:
+  - Setup: `AI_LIVE_ENABLED=true`, provider configured, but provider returns rate-limit or other transient error.
+  - Expected behavior: Do not return a generic provider failure as the only assistant answer for in-scope concept prompts. Use deterministic fallback response and expose provider failure only in warnings.
+
+- Prompt: `Who is Isaac Newton?`
+  - Expected: `scopeStatus=engineering`
+  - Expected classification: `engineering_concept`
+  - Expected behavior: Answer directly as foundational engineering/science education, mentioning mechanics, Newton's laws, and engineering relevance. Do not ask for project context.

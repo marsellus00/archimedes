@@ -88,3 +88,16 @@ The assistant provides engineering support, education, drafting, preliminary cal
 - The assistant chat history is displayed in a collapsible right panel on desktop and a drawer on smaller screens.
 
 Free chat remains user-scoped and project-independent. Project chat still requires a real `projectId` and membership.
+
+## Latest update: broad engineering concept handling
+
+This source package includes the updated `Base.txt` and server-side scope logic so broad technical prompts are no longer blocked only because they do not specify a discipline.
+
+Examples that now pass the engineering scope gate and receive a basic answer:
+
+- `Explain GNSS`
+- `What is hydrocarbon?`
+- `Who is Bernoulli?`
+- `Explain corrosion`
+
+The assistant should first provide a general engineering explanation, then optionally invite the user to choose a deeper application area such as ship tracking, surveying, petroleum engineering, process design, materials/reliability, or equipment troubleshooting.

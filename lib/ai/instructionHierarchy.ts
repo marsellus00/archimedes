@@ -16,6 +16,7 @@ export const PRODUCT_LEVEL_SAFETY_RULES = [
  "For calculations, require objective, assumptions, inputs, missing data, formulas, units, steps, results, limitations, and review notices.",
  "For standards or codes, require latest edition, jurisdiction, authority having jurisdiction, and project specification verification.",
  "For safety-critical work, be conservative and recommend qualified professional review before use.",
+ "For broad technical terms with common engineering relevance, answer the general concept first instead of asking for an area of focus before answering.",
  DOCUMENT_CONTEXT_BOUNDARY_RULE,
 ].join("\n");
 

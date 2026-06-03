@@ -112,9 +112,124 @@ const ENGINEERING_SIGNALS = [
  "fatigue",
 ];
 
+const BROAD_TECHNICAL_TERMS = [
+ "gnss",
+ "gps",
+ "global navigation satellite system",
+ "hydrocarbon",
+ "hydrocarbons",
+ "bernoulli",
+ "johann bernoulli",
+ "daniel bernoulli",
+ "bernoulli family",
+ "bernoulli principle",
+ "bernoulli equation",
+ "archimedes",
+ "isaac newton",
+ "newton",
+ "newton law",
+ "newton's law",
+ "pascal law",
+ "faraday law",
+ "faraday",
+ "euler",
+ "lagrange",
+ "fourier",
+ "navier",
+ "stokes",
+ "ohm law",
+ "ohm's law",
+ "corrosion",
+ "vibration",
+ "telemetry",
+ "sensor",
+ "sensors",
+ "actuator",
+ "actuators",
+ "transformer",
+ "compressor",
+ "turbine",
+ "bearing",
+ "lubricant",
+ "concrete",
+ "cement",
+ "alloy",
+ "polymer",
+ "welding",
+ "calibration",
+ "torque",
+ "strain",
+ "shear",
+ "moment",
+ "inertia",
+ "buoyancy",
+ "density",
+ "viscosity",
+ "thrust",
+ "drag",
+ "lift",
+ "cavitation",
+ "reynolds",
+ "mach number",
+ "froude number",
+ "npsh",
+ "enthalpy",
+ "entropy",
+ "heat exchanger",
+ "pipeline",
+ "pump",
+ "valve",
+ "retaining wall",
+ "foundation",
+ "column",
+ "beam",
+ "strut",
+ "riser",
+ "propeller",
+ "hull",
+ "chart datum",
+ "ned",
+ "north east down",
+];
+
+
+const ENGINEERING_FOUNDATION_FIGURES = [
+ "isaac newton",
+ "newton",
+ "johann bernoulli",
+ "daniel bernoulli",
+ "bernoulli",
+ "archimedes",
+ "leonhard euler",
+ "euler",
+ "joseph fourier",
+ "fourier",
+ "michael faraday",
+ "faraday",
+ "james watt",
+ "watt",
+ "blaise pascal",
+ "pascal",
+ "nikola tesla",
+ "tesla",
+ "alessandro volta",
+ "volta",
+ "george ohm",
+ "ohm",
+ "osborne reynolds",
+ "reynolds",
+ "navier",
+ "stokes",
+ "cauchy",
+ "lagrange",
+ "laplace",
+];
+
 const CONCEPT_SIGNALS = [
  "what is",
  "what are",
+ "who is",
+ "who was",
  "explain",
  "define",
  "meaning of",
@@ -124,6 +239,7 @@ const CONCEPT_SIGNALS = [
  "tell me about",
  "overview",
  "basics of",
+ "contemporary",
 ];
 
 const CALCULATION_SIGNALS = [
@@ -288,6 +404,16 @@ export function classifyEngineeringRequest(message: string): EngineeringRequestC
  const detectedSignals: string[] = [];
 
  const hasEngineeringSignal = collectSignals(normalized, ENGINEERING_SIGNALS, detectedSignals);
+ const hasBroadTechnicalSignal = collectSignals(
+ normalized,
+ BROAD_TECHNICAL_TERMS,
+ detectedSignals,
+ );
+ const hasFoundationFigureSignal = collectSignals(
+ normalized,
+ ENGINEERING_FOUNDATION_FIGURES,
+ detectedSignals,
+ );
  const hasConceptSignal = collectSignals(normalized, CONCEPT_SIGNALS, detectedSignals);
  const hasCalculationSignal = collectSignals(normalized, CALCULATION_SIGNALS, detectedSignals);
  const hasDocumentationSignal = collectSignals(normalized, DOCUMENTATION_SIGNALS, detectedSignals);
@@ -298,16 +424,22 @@ export function classifyEngineeringRequest(message: string): EngineeringRequestC
  const hasSimulationSignal = collectSignals(normalized, SIMULATION_SIGNALS, detectedSignals);
  const hasOutOfScopeSignal = collectSignals(normalized, OUT_OF_SCOPE_SIGNALS, detectedSignals);
 
+ const hasEngineeringOrBroadTechnicalSignal =
+ hasEngineeringSignal || hasBroadTechnicalSignal || hasFoundationFigureSignal;
+
  const scopeStatus: EngineeringScopeStatus =
- hasOutOfScopeSignal && !hasEngineeringSignal
+ hasOutOfScopeSignal && !hasEngineeringOrBroadTechnicalSignal
  ? "out_of_scope"
- : hasEngineeringSignal
+ : hasEngineeringOrBroadTechnicalSignal
  ? "engineering"
  : "needs_clarification";
 
  const category = resolveCategory({
  scopeStatus,
- hasConceptSignal,
+ hasConceptSignal:
+ hasConceptSignal ||
+ (hasBroadTechnicalSignal && isShortBroadTechnicalQuery(normalized)) ||
+ hasFoundationFigureSignal,
  hasCalculationSignal,
  hasDocumentationSignal,
  hasTroubleshootingSignal,
@@ -358,6 +490,11 @@ function resolveCategory(input: {
 
 function normalize(value: string): string {
  return value.toLowerCase().replace(/\s+/g, " ").trim();
+}
+
+function isShortBroadTechnicalQuery(value: string): boolean {
+ const words = value.split(" ").filter(Boolean);
+ return words.length <= 6;
 }
 
 function collectSignals(normalizedMessage: string, signals: string[], detectedSignals: string[]): boolean {
