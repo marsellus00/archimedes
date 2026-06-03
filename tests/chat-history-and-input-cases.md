@@ -41,3 +41,19 @@ Repeat for:
 - Confirm it does not require project access
 - Send a project chat with an invalid `projectId`
 - Confirm the API still rejects the request with project access error
+
+## GPT-style response formatting regression
+
+Prompt: `Calculate the coefficient of waterplane area and LCF from these ordinates...`
+Expected behavior:
+- Assistant answer should render as Markdown with headings, paragraphs, formula blocks, and tables.
+- The visible chat should not appear as a flat block of raw notes.
+- Metadata panels should remain separate and concise.
+
+## GPT-style response formatting regression
+
+Prompt: `Calculate the coefficient of waterplane area and LCF from these ordinates...`
+Expected behavior:
+- Assistant answer should render as Markdown with headings, paragraphs, formula blocks, and tables.
+- The visible chat should not appear as a flat block of raw notes.
+- Metadata panels should remain separate and concise.

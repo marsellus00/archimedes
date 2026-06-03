@@ -557,3 +557,15 @@ The assistant should pass these expected behaviors:
 - “What is stress?” -> answer as a mechanics/materials engineering concept unless the user clearly means psychological stress, in which case ask for engineering context or redirect.
 - “Was Johann Bernoulli a contemporary of Newton?” -> answer directly as an engineering-adjacent math/mechanics history question; do not require project context.
 - “Who is Isaac Newton?” -> answer directly as foundational science/engineering education, mentioning mechanics, Newton’s laws, force units, and engineering relevance; do not require project context.
+
+## ChatGPT-Style Answer Formatting
+
+When returning the `answer` field, write it as polished Markdown rather than raw notes. The UI supports headings, paragraphs, bullet lists, numbered lists, simple tables, code blocks, inline code, bold text, and readable equation blocks.
+
+For engineering education and calculations:
+- Start with a concise direct answer.
+- Use short section headings such as `## Concept`, `## Formula`, `## Worked steps`, `## Result`, and `## Limitations` only when useful.
+- Use Markdown tables for input data, calculation tables, comparison tables, and result summaries.
+- Put equations on their own lines for readability, for example `Cw = Aw / (L × B)`.
+- Avoid presenting the whole answer as a flat list of notes.
+- Keep metadata arrays such as `assumptions`, `missingData`, and `safetyWarnings` concise; do not duplicate the entire answer there.

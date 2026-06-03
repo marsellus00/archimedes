@@ -127,7 +127,8 @@ function buildChatMessages(
  content: [
  "Return only a JSON object matching this exact TypeScript shape:",
  '{"answer":"string","scopeStatus":"engineering|out_of_scope|needs_clarification","assumptions":["string"],"missingData":["string"],"safetyWarnings":["string"],"standardsReferenced":["string"],"requiresProfessionalReview":true,"confidenceLevel":"rough_estimate|preliminary|detailed|not_applicable"}',
- "Do not wrap the JSON in markdown. Do not include extra top-level fields.",
+ "Do not wrap the JSON object itself in markdown. Do not include extra top-level fields.",
+ "Inside the answer string, use clean ChatGPT-style Markdown: short headings, paragraphs, bullet/numbered lists, Markdown tables for tabular calculations, fenced code blocks when useful, and readable equation lines. Avoid dumping notes as one long plain-text block.",
  `Pre-classified request category: ${input.classification.category}.`,
  `Pre-classified scope status: ${input.classification.scopeStatus}.`,
  `Professional review required by classifier: ${input.classification.requiresProfessionalReview}.`,

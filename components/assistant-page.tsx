@@ -8,6 +8,7 @@ import {
  type ChangeEvent,
  type FormEvent,
  type KeyboardEvent,
+ type ReactNode,
 } from "react";
 import {
  AlertTriangle,
@@ -1079,16 +1080,311 @@ function ChatMessageCard({ message }: { message: ChatMessage }) {
  </div>
  </div>
 
- <div className="whitespace-pre-wrap text-sm leading-7 text-slate-200">
- {message.content || (message.isStreaming ? "Engineering Assistant is preparing the response" : "")}
- {message.isStreaming ? <StreamingCursor /> : null}
- </div>
+ <MarkdownContent
+ content={message.content || (message.isStreaming ? "Engineering Assistant is preparing the response" : "")}
+ isStreaming={message.isStreaming}
+ />
 
  {response && !message.isStreaming ? (
  <ResponseMetadata response={response} warnings={message.envelope?.warnings} />
  ) : null}
  </article>
  );
+}
+
+
+type MarkdownBlock =
+ | { type: "heading"; level: number; text: string }
+ | { type: "paragraph"; text: string }
+ | { type: "unordered-list"; items: string[] }
+ | { type: "ordered-list"; items: string[] }
+ | { type: "code"; text: string }
+ | { type: "formula"; text: string }
+ | { type: "table"; headers: string[]; rows: string[][] };
+
+function MarkdownContent({
+ content,
+ isStreaming,
+}: {
+ content: string;
+ isStreaming?: boolean;
+}) {
+ const blocks = parseMarkdownBlocks(content);
+
+ return (
+ <div className="engineering-markdown text-sm leading-7 text-slate-200">
+ {blocks.map((block, index) => renderMarkdownBlock(block, index))}
+ {isStreaming ? <StreamingCursor /> : null}
+ </div>
+ );
+}
+
+function parseMarkdownBlocks(content: string): MarkdownBlock[] {
+ const lines = content.replace(/\r\n/g, "\n").split("\n");
+ const blocks: MarkdownBlock[] = [];
+ let index = 0;
+
+ while (index < lines.length) {
+ const rawLine = lines[index];
+ const line = rawLine.trim();
+
+ if (!line) {
+ index += 1;
+ continue;
+ }
+
+ if (line.startsWith("```") || line.startsWith("~~~")) {
+ const fence = line.slice(0, 3);
+ index += 1;
+ const codeLines: string[] = [];
+ while (index < lines.length && !lines[index].trim().startsWith(fence)) {
+ codeLines.push(lines[index]);
+ index += 1;
+ }
+ if (index < lines.length) index += 1;
+ blocks.push({ type: "code", text: codeLines.join("\n") });
+ continue;
+ }
+
+ const headingMatch = line.match(/^(#{1,4})\s+(.+)$/);
+ if (headingMatch) {
+ blocks.push({
+ type: "heading",
+ level: headingMatch[1].length,
+ text: headingMatch[2].trim(),
+ });
+ index += 1;
+ continue;
+ }
+
+ if (isFormulaLine(line)) {
+ const formulaLines: string[] = [stripFormulaDelimiters(line)];
+ index += 1;
+ while (index < lines.length && isFormulaLine(lines[index].trim())) {
+ formulaLines.push(stripFormulaDelimiters(lines[index].trim()));
+ index += 1;
+ }
+ blocks.push({ type: "formula", text: formulaLines.join("\n") });
+ continue;
+ }
+
+ if (isTableStart(lines, index)) {
+ const headers = splitMarkdownTableRow(lines[index]);
+ index += 2;
+ const rows: string[][] = [];
+ while (index < lines.length && looksLikeTableRow(lines[index])) {
+ rows.push(splitMarkdownTableRow(lines[index]));
+ index += 1;
+ }
+ blocks.push({ type: "table", headers, rows });
+ continue;
+ }
+
+ if (/^[-*]\s+/.test(line)) {
+ const items: string[] = [];
+ while (index < lines.length && /^[-*]\s+/.test(lines[index].trim())) {
+ items.push(lines[index].trim().replace(/^[-*]\s+/, ""));
+ index += 1;
+ }
+ blocks.push({ type: "unordered-list", items });
+ continue;
+ }
+
+ if (/^\d+[.)]\s+/.test(line)) {
+ const items: string[] = [];
+ while (index < lines.length && /^\d+[.)]\s+/.test(lines[index].trim())) {
+ items.push(lines[index].trim().replace(/^\d+[.)]\s+/, ""));
+ index += 1;
+ }
+ blocks.push({ type: "ordered-list", items });
+ continue;
+ }
+
+ const paragraphLines: string[] = [rawLine.trim()];
+ index += 1;
+ while (
+ index < lines.length &&
+ lines[index].trim() &&
+ !lines[index].trim().match(/^(#{1,4})\s+(.+)$/) &&
+ !/^[-*]\s+/.test(lines[index].trim()) &&
+ !/^\d+[.)]\s+/.test(lines[index].trim()) &&
+ !isTableStart(lines, index) &&
+ !isFormulaLine(lines[index].trim()) &&
+ !lines[index].trim().startsWith("```") &&
+ !lines[index].trim().startsWith("~~~")
+ ) {
+ paragraphLines.push(lines[index].trim());
+ index += 1;
+ }
+ blocks.push({ type: "paragraph", text: paragraphLines.join(" ") });
+ }
+
+ return blocks.length ? blocks : [{ type: "paragraph", text: content }];
+}
+
+function renderMarkdownBlock(block: MarkdownBlock, index: number) {
+ const key = `${block.type}-${index}`;
+
+ if (block.type === "heading") {
+ const className =
+ block.level === 1
+ ? "mt-6 mb-3 text-xl font-semibold leading-8 text-slate-50 first:mt-0"
+ : block.level === 2
+ ? "mt-5 mb-2 text-lg font-semibold leading-7 text-slate-50 first:mt-0"
+ : "mt-4 mb-2 text-base font-semibold leading-7 text-slate-100 first:mt-0";
+ return (
+ <div key={key} className={className}>
+ {renderInlineMarkdown(block.text)}
+ </div>
+ );
+ }
+
+ if (block.type === "unordered-list") {
+ return (
+ <ul key={key} className="my-3 ml-5 list-disc space-y-1.5 marker:text-sky-300">
+ {block.items.map((item, itemIndex) => (
+ <li key={`${key}-${itemIndex}`} className="pl-1">
+ {renderInlineMarkdown(item)}
+ </li>
+ ))}
+ </ul>
+ );
+ }
+
+ if (block.type === "ordered-list") {
+ return (
+ <ol key={key} className="my-3 ml-5 list-decimal space-y-1.5 marker:text-sky-300">
+ {block.items.map((item, itemIndex) => (
+ <li key={`${key}-${itemIndex}`} className="pl-1">
+ {renderInlineMarkdown(item)}
+ </li>
+ ))}
+ </ol>
+ );
+ }
+
+ if (block.type === "code") {
+ return (
+ <pre key={key} className="my-4 overflow-x-auto rounded-xl border border-slate-700/50 bg-[#0a0e14] p-4 font-mono text-xs leading-6 text-slate-200">
+ <code>{block.text}</code>
+ </pre>
+ );
+ }
+
+ if (block.type === "formula") {
+ return (
+ <div key={key} className="my-4 overflow-x-auto rounded-xl border border-sky-300/20 bg-sky-300/5 px-4 py-3 text-center font-mono text-sm text-slate-100">
+ {block.text.split("\n").map((line, lineIndex) => (
+ <div key={`${key}-${lineIndex}`}>{line}</div>
+ ))}
+ </div>
+ );
+ }
+
+ if (block.type === "table") {
+ return (
+ <div key={key} className="my-4 overflow-x-auto rounded-xl border border-slate-700/40">
+ <table className="min-w-full border-collapse text-left text-xs">
+ <thead className="bg-slate-800/80 text-slate-100">
+ <tr>
+ {block.headers.map((header, headerIndex) => (
+ <th key={`${key}-h-${headerIndex}`} className="border-b border-slate-700/50 px-3 py-2 font-semibold">
+ {renderInlineMarkdown(header)}
+ </th>
+ ))}
+ </tr>
+ </thead>
+ <tbody>
+ {block.rows.map((row, rowIndex) => (
+ <tr key={`${key}-r-${rowIndex}`} className="odd:bg-[#10141a] even:bg-[#0d1117]">
+ {block.headers.map((_, cellIndex) => (
+ <td key={`${key}-c-${rowIndex}-${cellIndex}`} className="border-t border-slate-700/30 px-3 py-2 align-top text-slate-300">
+ {renderInlineMarkdown(row[cellIndex] ?? "")}
+ </td>
+ ))}
+ </tr>
+ ))}
+ </tbody>
+ </table>
+ </div>
+ );
+ }
+
+ return (
+ <p key={key} className="my-3 first:mt-0 last:mb-0">
+ {renderInlineMarkdown(block.text)}
+ </p>
+ );
+}
+
+function renderInlineMarkdown(text: string): ReactNode[] {
+ const nodes: ReactNode[] = [];
+ const pattern = /(\*\*[^*]+\*\*|`[^`]+`)/g;
+ let lastIndex = 0;
+ let match: RegExpExecArray | null;
+
+ while ((match = pattern.exec(text)) !== null) {
+ if (match.index > lastIndex) {
+ nodes.push(text.slice(lastIndex, match.index));
+ }
+
+ const token = match[0];
+ if (token.startsWith("**")) {
+ nodes.push(
+ <strong key={`strong-${match.index}`} className="font-semibold text-slate-50">
+ {token.slice(2, -2)}
+ </strong>,
+ );
+ } else {
+ nodes.push(
+ <code key={`code-${match.index}`} className="rounded bg-slate-900/80 px-1.5 py-0.5 font-mono text-[0.85em] text-sky-200">
+ {token.slice(1, -1)}
+ </code>,
+ );
+ }
+
+ lastIndex = match.index + token.length;
+ }
+
+ if (lastIndex < text.length) {
+ nodes.push(text.slice(lastIndex));
+ }
+
+ return nodes;
+}
+
+function isFormulaLine(line: string) {
+ return (
+ /^\$\$.+\$\$$/.test(line) ||
+ /^\\\[.+\\\]$/.test(line) ||
+ /^([A-Za-z][A-Za-z0-9_{}^\\ /·*+\-=()\.]+)=/.test(line)
+ );
+}
+
+function stripFormulaDelimiters(line: string) {
+ return line.replace(/^\$\$|\$\$$/g, "").replace(/^\\\[|\\\]$/g, "").trim();
+}
+
+function looksLikeTableRow(line: string) {
+ const trimmed = line.trim();
+ return trimmed.startsWith("|") && trimmed.endsWith("|") && trimmed.split("|").length >= 3;
+}
+
+function isTableStart(lines: string[], index: number) {
+ return (
+ index + 1 < lines.length &&
+ looksLikeTableRow(lines[index]) &&
+ /^\s*\|?\s*:?-{3,}:?\s*(\|\s*:?-{3,}:?\s*)+\|?\s*$/.test(lines[index + 1])
+ );
+}
+
+function splitMarkdownTableRow(line: string) {
+ return line
+ .trim()
+ .replace(/^\|/, "")
+ .replace(/\|$/, "")
+ .split("|")
+ .map((cell) => cell.trim());
 }
 
 function StreamingCursor() {
